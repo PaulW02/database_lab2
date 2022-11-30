@@ -7,4 +7,5 @@ module se.kth.anderslm.booksdb {
     exports com.example.database_lab1;
 
     requires java.sql;
+    requires mysql.connector.j;
 }

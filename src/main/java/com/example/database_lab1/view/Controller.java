@@ -27,11 +27,15 @@ public class Controller {
 
     protected void onSearchSelected(String searchFor, SearchMode mode) {
         try {
+            System.out.println(searchFor);
             if (searchFor != null && searchFor.length() > 1) {
                 List<Book> result = null;
+                System.out.println(searchFor);
                 switch (mode) {
                     case Title:
+                        System.out.println(searchFor);
                         result = booksDb.searchBooksByTitle(searchFor);
+                        System.out.println(result);
                         break;
                     case ISBN:
                         // ...
