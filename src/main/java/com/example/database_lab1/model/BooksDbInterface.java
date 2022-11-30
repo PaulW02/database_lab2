@@ -29,7 +29,15 @@ public interface BooksDbInterface {
     public void disconnect() throws BooksDbException, SQLException;
     
     public List<Book> searchBooksByTitle(String title) throws BooksDbException, SQLException, ClassNotFoundException;
-    
+
+    public List<Book> searchBooksByISBN(String searchISBN) throws BooksDbException, SQLException, ClassNotFoundException;
+
+    List<Book> searchBooksByAuthor(String searchAuthor) throws BooksDbException, SQLException, ClassNotFoundException;
+
+    List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException, SQLException, ClassNotFoundException;
+
+    List<Book> searchBooksByStars(String searchStars) throws BooksDbException, SQLException, ClassNotFoundException;
+
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.
 }

@@ -63,6 +63,68 @@ public class BooksDbMockImpl implements BooksDbInterface {
         return result;
     }
 
+    @Override
+    public List<Book> searchBooksByISBN(String searchISBN)
+            throws BooksDbException, SQLException, ClassNotFoundException {
+        List<Book> result = new ArrayList<>();
+        connect("booksdb");
+        String sql = "SELECT * FROM book WHERE ISBN LIKE '%"+searchISBN+"%'";
+        Statement stmt = this.con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while (rs.next()){
+            result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
+        }
+        return result;
+    }
+
+    @Override
+    public List<Book> searchBooksByAuthor(String searchAuthor)
+            throws BooksDbException, SQLException, ClassNotFoundException {
+        List<Book> result = new ArrayList<>();
+        searchAuthor = searchAuthor.toLowerCase();
+        connect("booksdb");
+        String sql = "SELECT * FROM book WHERE author LIKE '%"+searchAuthor+"%'";
+        Statement stmt = this.con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while (rs.next()){
+            result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
+        }
+        return result;
+    }
+
+    @Override
+    public List<Book> searchBooksByGenre(String searchGenre)
+            throws BooksDbException, SQLException, ClassNotFoundException {
+        List<Book> result = new ArrayList<>();
+        searchGenre = searchGenre.toLowerCase();
+        connect("booksdb");
+        String sql = "SELECT * FROM book WHERE genre LIKE '%"+searchGenre+"%'";
+        Statement stmt = this.con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while (rs.next()){
+            result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
+        }
+        return result;
+    }
+
+    @Override
+    public List<Book> searchBooksByStars(String searchStars)
+            throws BooksDbException, SQLException, ClassNotFoundException {
+        List<Book> result = new ArrayList<>();
+        connect("booksdb");
+        String sql = "SELECT * FROM book WHERE stars LIKE '%"+searchStars+"%'";
+        Statement stmt = this.con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while (rs.next()){
+            result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
+        }
+        return result;
+    }//gör man såhär för stars?
+
     private static final Book[] DATA = {
             new Book(1, "123456789", "Databases Illuminated", new Date(2018, 1, 1)),
             new Book(2, "234567891", "Dark Databases", new Date(1990, 1, 1)),
