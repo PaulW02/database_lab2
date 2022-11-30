@@ -5,7 +5,7 @@
  */
 package com.example.database_lab1.model;
 
-import java.sql.Date;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +20,7 @@ import java.util.List;
  */
 public class BooksDbMockImpl implements BooksDbInterface {
 
+    private Connection con;
     private final List<Book> books;
 
     public BooksDbMockImpl() {
@@ -27,28 +28,37 @@ public class BooksDbMockImpl implements BooksDbInterface {
     }
 
     @Override
-    public boolean connect(String database) throws BooksDbException {
-        // mock implementation
-        return true;
+    public boolean connect(String database) throws BooksDbException, ClassNotFoundException, SQLException {
+        String server = "jdbc:mysql://localhost:3306/" + database+ "?UseClientEnc=UTF8";
+        this.con = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            con = DriverManager.getConnection(server, "root", "123457");
+            return true;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public void disconnect() throws BooksDbException {
-        // mock implementation
+    public void disconnect() throws BooksDbException, SQLException {
+        this.con.close();
     }
 
     @Override
     public List<Book> searchBooksByTitle(String searchTitle)
-            throws BooksDbException {
-        // mock implementation
-        // NB! Your implementation should select the books matching
-        // the search string via a query to a database (not load all books from db)
+            throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
         searchTitle = searchTitle.toLowerCase();
-        for (Book book : books) {
-            if (book.getTitle().toLowerCase().contains(searchTitle)) {
-                result.add(book);
-            }
+        connect("booksdb");
+        String sql = "SELECT * FROM book WHERE title LIKE '%"+searchTitle+"%'";
+        Statement stmt = this.con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        while (rs.next()){
+            result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
         }
         return result;
     }

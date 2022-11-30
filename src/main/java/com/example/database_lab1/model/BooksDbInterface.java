@@ -24,11 +24,11 @@ public interface BooksDbInterface {
      * @param database
      * @return true on successful connection.
      */
-    public boolean connect(String database) throws BooksDbException;
+    public boolean connect(String database) throws BooksDbException, ClassNotFoundException, SQLException;
     
-    public void disconnect() throws BooksDbException;
+    public void disconnect() throws BooksDbException, SQLException;
     
-    public List<Book> searchBooksByTitle(String title) throws BooksDbException;
+    public List<Book> searchBooksByTitle(String title) throws BooksDbException, SQLException, ClassNotFoundException;
     
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.
