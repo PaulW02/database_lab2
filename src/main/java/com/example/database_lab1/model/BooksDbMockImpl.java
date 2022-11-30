@@ -30,14 +30,10 @@ public class BooksDbMockImpl implements BooksDbInterface {
     @Override
     public boolean connect(String database) throws BooksDbException, ClassNotFoundException, SQLException {
         String server = "jdbc:mysql://localhost:3306/" + database+ "?UseClientEnc=UTF8";
-        System.out.println("TEST");
         this.con = null;
         try {
-            System.out.println("TEST");
             Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("TEST1");
             con = DriverManager.getConnection(server, "root", "123457");
-            System.out.println("TEST");
             return true;
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
