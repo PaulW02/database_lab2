@@ -38,11 +38,16 @@ public class Controller {
                         System.out.println(result);
                         break;
                     case ISBN:
-                        // ...
+                        result = booksDb.searchBooksByISBN(searchFor);
                         break;
                     case Author:
-                        // ...
+                        result = booksDb.searchBooksByAuthor(searchFor);
                         break;
+                    case Genre:
+                        result = booksDb.searchBooksByGenre(searchFor);
+                        break;
+                    case Stars:
+                        result = booksDb.searchBooksByStars(searchFor);
                     default:
                         result= new ArrayList<>();
                 }
