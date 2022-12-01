@@ -20,6 +20,7 @@ import java.util.List;
  */
 public class BooksDbMockImpl implements BooksDbInterface {
 
+    public static final String DB_NAME = "booksdb";
     private Connection con;
     private final List<Book> books;
 
@@ -28,7 +29,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
     }
 
     @Override
-    public boolean connect(String database) throws BooksDbException, ClassNotFoundException, SQLException {
+    public boolean connect(String database) throws BooksDbException {
         String server = "jdbc:mysql://localhost:3306/" + database+ "?UseClientEnc=UTF8";
         this.con = null;
         try {
@@ -36,9 +37,9 @@ public class BooksDbMockImpl implements BooksDbInterface {
             con = DriverManager.getConnection(server, "root", "123457");
             return true;
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new BooksDbException("ClassNotFoundException", e);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new BooksDbException("SQLException", e);
         }
     }
 
@@ -52,7 +53,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
         searchTitle = searchTitle.toLowerCase();
-        connect("booksdb");
+        connect(DB_NAME);
         String sql = "SELECT * FROM book WHERE title LIKE '%"+searchTitle+"%'";
         Statement stmt = this.con.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
@@ -67,7 +68,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public List<Book> searchBooksByISBN(String searchISBN)
             throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
-        connect("booksdb");
+        connect(DB_NAME);
         String sql = "SELECT * FROM book WHERE ISBN LIKE '%"+searchISBN+"%'";
         Statement stmt = this.con.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
@@ -83,7 +84,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
         searchAuthor = searchAuthor.toLowerCase();
-        connect("booksdb");
+        connect(DB_NAME);
         String sql = "SELECT * FROM book WHERE author LIKE '%"+searchAuthor+"%'";
         Statement stmt = this.con.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
@@ -99,7 +100,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
         searchGenre = searchGenre.toLowerCase();
-        connect("booksdb");
+        connect(DB_NAME);
         String sql = "SELECT * FROM book WHERE genre LIKE '%"+searchGenre+"%'";
         Statement stmt = this.con.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
@@ -114,7 +115,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public List<Book> searchBooksByStars(String searchStars)
             throws BooksDbException, SQLException, ClassNotFoundException {
         List<Book> result = new ArrayList<>();
-        connect("booksdb");
+        connect(DB_NAME);
         String sql = "SELECT * FROM book WHERE stars LIKE '%"+searchStars+"%'";
         Statement stmt = this.con.createStatement();
         ResultSet rs = stmt.executeQuery(sql);
