@@ -34,7 +34,8 @@ public class BooksDbMockImpl implements BooksDbInterface {
         this.con = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(server, "root", "1234");
+            con = DriverManager.getConnection(server, "root", "123457");
+            System.out.println("Connection done!");
             return true;
         } catch (ClassNotFoundException e) {
             throw new BooksDbException("Class could not be found, check your driver", e);
@@ -149,6 +150,117 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }//gör man såhär för stars?
+
+    @Override
+    public Book addBook(String title, String isbn, Date published, String authorName)
+            throws BooksDbException {
+        try {
+            connect(DB_NAME);
+            String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, title);
+            stmt.setString(2, isbn);
+            stmt.setDate(3, published);
+            stmt.executeUpdate();
+            addAuthor(authorName);
+            addAuthorToBook(title, isbn, authorName);
+            return new Book(getBookIdByTitleAndISBN(title, isbn), title, isbn, published);
+        } catch (SQLException e) {
+            System.out.println("");
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException {
+        String sql;
+        PreparedStatement stmt;
+        connect(DB_NAME);
+        sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
+        stmt = this.con.prepareStatement(sql);
+        int bookId = getBookIdByTitleAndISBN(title, isbn);
+        int authorId = getAuthorByName(authorName).getAuthorId();
+        stmt.setInt(1, bookId);
+        stmt.setInt(2, authorId);
+        stmt.executeUpdate();
+    }
+
+    @Override
+    public int getBookIdByTitleAndISBN(String title, String isbn)
+            throws BooksDbException {
+        try {
+            connect(DB_NAME);
+            String sql = "SELECT * FROM book WHERE title = ? AND isbn = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, title);
+            stmt.setString(2, isbn);
+            ResultSet rs = stmt.executeQuery();
+            int bookId = 0;
+            while (rs.next()){
+                bookId = rs.getInt("book_id");
+            }
+            return bookId;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public void addAuthor(String authorName)
+            throws BooksDbException {
+        try {
+            if (getAuthorByName(authorName).getAuthorId() == 0) {
+                connect(DB_NAME);
+                String sql = "INSERT INTO author (name) VALUES (?)";
+                PreparedStatement stmt = this.con.prepareStatement(sql);
+                stmt.setString(1, authorName);
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public Author getAuthorByName(String authorName) throws BooksDbException{
+        try {
+            connect(DB_NAME);
+            String sql = "SELECT * FROM author WHERE name = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, authorName);
+            ResultSet rs = stmt.executeQuery();
+            int authorId = 0;
+            String name = "";
+            while (rs.next()){
+                authorId = rs.getInt("author_id");
+                name = rs.getString("name");
+            }
+            return new Author(authorId, name);
+        }catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public List<Author> getAuthorsByBookId(int bookId)
+            throws BooksDbException {
+        try {
+            List<Author> result = new ArrayList<>();
+            connect(DB_NAME);
+            String sql = "SELECT a.author_id, a.name FROM book b, author a, book_author ba WHERE b.book_id = ba.book_id AND ba.author_id = a.author_id AND b.book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                result.add(new Author(rs.getInt("author_id"), rs.getString("name")));
+            }
+            return result;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
 
     private static final Book[] DATA = {
             new Book(1, "123456789", "Databases Illuminated", new Date(2018, 1, 1)),

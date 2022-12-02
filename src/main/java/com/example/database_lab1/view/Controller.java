@@ -4,6 +4,8 @@ import com.example.database_lab1.model.Book;
 import com.example.database_lab1.model.BooksDbInterface;
 import com.example.database_lab1.model.SearchMode;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +25,19 @@ public class Controller {
     public Controller(BooksDbInterface booksDb, BooksPane booksView) {
         this.booksDb = booksDb;
         this.booksView = booksView;
+    }
+
+    protected void onAddBook(String title, String isbn, LocalDate published, String authorName){
+        try{
+            if (title != null && isbn != null && published != null && authorName != null){
+                Date publishedDate = Date.valueOf(published);
+                booksDb.addBook(title, isbn, publishedDate, authorName);
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+            }
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
     }
 
     protected void onSearchSelected(String searchFor, SearchMode mode) {
@@ -55,6 +70,9 @@ public class Controller {
                     booksView.showAlertAndWait(
                             "No results found.", INFORMATION);
                 } else {
+                    for (Book book: result) {
+                        book.setAuthors(booksDb.getAuthorsByBookId(book.getBookId()));
+                    }
                     booksView.displayBooks(result);
                 }
             } else {

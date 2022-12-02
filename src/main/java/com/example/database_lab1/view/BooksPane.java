@@ -3,6 +3,7 @@ package com.example.database_lab1.view;
 import java.sql.Date;
 import java.util.List;
 
+import com.example.database_lab1.model.Author;
 import com.example.database_lab1.model.Book;
 import com.example.database_lab1.model.BooksDbMockImpl;
 import com.example.database_lab1.model.SearchMode;
@@ -11,12 +12,14 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.stage.Modality;
+import javafx.stage.Popup;
+import javafx.stage.Stage;
 
 
 /**
@@ -71,7 +74,7 @@ public class BooksPane extends VBox {
         // init views and event handlers
         initBooksTable();
         initSearchView(controller);
-        initMenus();
+        initMenus(controller);
 
         FlowPane bottomPane = new FlowPane();
         bottomPane.setHgap(10);
@@ -96,16 +99,19 @@ public class BooksPane extends VBox {
         TableColumn<Book, String> titleCol = new TableColumn<>("Title");
         TableColumn<Book, String> isbnCol = new TableColumn<>("ISBN");
         TableColumn<Book, Date> publishedCol = new TableColumn<>("Published");
-        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol);
+        TableColumn<Book, String> authorsCol = new TableColumn<>("Author(s)");
+        booksTable.getColumns().addAll(titleCol, isbnCol, publishedCol, authorsCol);
         // give title column some extra space
         titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
+        authorsCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
 
         // define how to fill data for each cell, 
         // get values from Book properties
         titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
         isbnCol.setCellValueFactory(new PropertyValueFactory<>("isbn"));
         publishedCol.setCellValueFactory(new PropertyValueFactory<>("published"));
-        
+        authorsCol.setCellValueFactory(new PropertyValueFactory<>("authors"));
+
         // associate the table view with the data
         booksTable.setItems(booksInTable);
     }
@@ -129,7 +135,50 @@ public class BooksPane extends VBox {
         });
     }
 
-    private void initMenus() {
+    private void initAddBookPopup(Controller controller){
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("This is a pop up window");
+
+        Label titleLbl = new Label("Title:");
+        TextField titleField = new TextField ();
+        VBox titleVbox = new VBox();
+        titleVbox.getChildren().addAll(titleLbl, titleField);
+        titleVbox.setSpacing(10);
+
+        Label isbnLbl = new Label("ISBN:");
+        TextField isbnField = new TextField ();
+        VBox isbnVbox = new VBox();
+        isbnVbox.getChildren().addAll(isbnLbl, isbnField);
+        isbnVbox.setSpacing(10);
+
+        Label publishedLbl = new Label("Published:");
+        DatePicker publishedField = new DatePicker();
+        VBox publishedVbox = new VBox();
+        publishedVbox.getChildren().addAll(publishedLbl, publishedField);
+        publishedVbox.setSpacing(10);
+
+        Label authorLbl = new Label("Author:");
+        TextField authorField = new TextField ();
+        VBox authorVbox = new VBox();
+        authorVbox.getChildren().addAll(authorLbl, authorField);
+        authorVbox.setSpacing(10);
+
+        Button addBookBtn= new Button("Add book");
+
+        addBookBtn.setOnAction(e -> controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText()));
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorVbox, addBookBtn);
+        layout.setAlignment(Pos.CENTER);
+        Scene scene1= new Scene(layout, 300, 250);
+        popupwindow.setScene(scene1);
+        popupwindow.showAndWait();
+    }
+
+    private void initMenus(Controller controller) {
 
         Menu fileMenu = new Menu("File");
         MenuItem exitItem = new MenuItem("Exit");
@@ -148,6 +197,11 @@ public class BooksPane extends VBox {
         MenuItem removeItem = new MenuItem("Remove");
         MenuItem updateItem = new MenuItem("Update");
         manageMenu.getItems().addAll(addItem, removeItem, updateItem);
+
+        EventHandler<ActionEvent> addBookHandler = actionEvent -> {
+            initAddBookPopup(controller); // save data?
+        };
+        addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu);

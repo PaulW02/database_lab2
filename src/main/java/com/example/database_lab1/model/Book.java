@@ -1,6 +1,8 @@
 package com.example.database_lab1.model;
 
 import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Representation of a book.
@@ -14,6 +16,8 @@ public class Book {
     private String title;
     private Date published;
     private String storyLine = "";
+
+    private List<Author> authors;
     // TODO: 
     // Add authors, as a separate class(!), and corresponding methods, to your implementation
     // as well, i.e. "private ArrayList<Author> authors;"
@@ -23,6 +27,7 @@ public class Book {
         this.isbn = isbn;
         this.title = title;
         this.published = published;
+        this.authors = new ArrayList<>();
     }
     
     public Book(String isbn, String title, Date published) {
@@ -38,7 +43,15 @@ public class Book {
     public void setStoryLine(String storyLine) {
         this.storyLine = storyLine;
     }
-    
+
+    public List<Author> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(List<Author> authors) {
+        this.authors = authors;
+    }
+
     @Override
     public String toString() {
         return title + ", " + isbn + ", " + published.toString();

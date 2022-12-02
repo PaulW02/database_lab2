@@ -2,6 +2,8 @@ package com.example.database_lab1.model;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -30,13 +32,28 @@ public interface BooksDbInterface {
     
     public List<Book> searchBooksByTitle(String title) throws BooksDbException, SQLException, ClassNotFoundException;
 
-    public List<Book> searchBooksByISBN(String searchISBN) throws BooksDbException, SQLException, ClassNotFoundException;
+    public List<Book> searchBooksByISBN(String searchISBN) throws BooksDbException;
 
-    List<Book> searchBooksByAuthor(String searchAuthor) throws BooksDbException, SQLException, ClassNotFoundException;
+    List<Book> searchBooksByAuthor(String searchAuthor) throws BooksDbException;
 
-    List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException, SQLException, ClassNotFoundException;
+    List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException;
 
-    List<Book> searchBooksByStars(String searchStars) throws BooksDbException, SQLException, ClassNotFoundException;
+    List<Book> searchBooksByStars(String searchStars) throws BooksDbException;
+
+    Book addBook(String title, String isbn, java.sql.Date published, String authorName)
+            throws BooksDbException;
+
+    void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException;
+
+    int getBookIdByTitleAndISBN(String title, String isbn)
+            throws BooksDbException;
+
+    void addAuthor(String authorName)
+            throws BooksDbException;
+
+    Author getAuthorByName(String authorName) throws BooksDbException;
+
+    List<Author> getAuthorsByBookId(int bookId) throws BooksDbException;
 
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.
