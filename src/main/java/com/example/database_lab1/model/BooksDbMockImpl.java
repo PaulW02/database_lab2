@@ -34,7 +34,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
         this.con = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(server, "root", "123457");
+            con = DriverManager.getConnection(server, "root", "1234");
             return true;
         } catch (ClassNotFoundException e) {
             throw new BooksDbException("Class could not be found, check your driver", e);
@@ -98,7 +98,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
             List<Book> result = new ArrayList<>();
             searchAuthor = searchAuthor.toLowerCase();
             connect(DB_NAME);
-            String sql = "SELECT * FROM book WHERE author LIKE '%"+searchAuthor+"%'";
+            String sql = "SELECT * FROM book b, author  a, book_author ba WHERE b.bookid = ba.bookid AND ba.authorid = a.authorid AND a.name LIKE '%"+searchAuthor+"%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -118,7 +118,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
             List<Book> result = new ArrayList<>();
             searchGenre = searchGenre.toLowerCase();
             connect(DB_NAME);
-            String sql = "SELECT * FROM book WHERE genre LIKE '%" + searchGenre + "%'";
+            String sql = "SELECT * FROM book b, book_genre bg, genre g WHERE b.bookid = bg.bookid AND bg.genre_id = g.genre AND g.genre_name LIKE '%" + searchGenre + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -137,7 +137,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             connect(DB_NAME);
-            String sql = "SELECT * FROM book WHERE stars LIKE '%" + searchStars + "%'";
+            String sql = "SELECT * FROM book b, review r WHERE b.bookid = r.bookid AND stars LIKE '%" + searchStars + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
