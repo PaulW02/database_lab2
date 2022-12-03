@@ -22,6 +22,8 @@ public class Controller {
     private final BooksPane booksView; // view
     private final BooksDbInterface booksDb; // model
 
+    public static final String DB_NAME = "booksdb";
+
     public Controller(BooksDbInterface booksDb, BooksPane booksView) {
         this.booksDb = booksDb;
         this.booksView = booksView;
@@ -31,6 +33,7 @@ public class Controller {
         try{
             if (title != null && isbn != null && published != null && authorName != null){
                 Date publishedDate = Date.valueOf(published);
+                booksDb.connect(DB_NAME);
                 booksDb.addBook(title, isbn, publishedDate, authorName);
             }else{
                 booksView.showAlertAndWait("Fill in all fields!", WARNING);
@@ -44,6 +47,7 @@ public class Controller {
         try {
             System.out.println(searchFor);
             if (searchFor != null && searchFor.length() > 1) {
+                booksDb.connect(DB_NAME);
                 List<Book> result = null;
                 System.out.println(searchFor);
                 switch (mode) {
@@ -82,6 +86,34 @@ public class Controller {
         } catch (Exception e) {
             booksView.showAlertAndWait("Database error.",ERROR);
         }
+    }
+
+    protected boolean onLoginUser(String username, String password) {
+        try{
+            if (username != null && password != null){
+                booksDb.connect(DB_NAME);
+                return booksDb.loginUser(username, password) ? true : false;
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+            }
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
+        return false;
+    }
+
+    public boolean onRegisterUser(String name, String username, String password) {
+        try{
+            if (name != null && username != null && password != null){
+                booksDb.connect(DB_NAME);
+                return booksDb.registerUser(name, username, password) ? true : false;
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+            }
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
+        return false;
     }
 
     // TODO:

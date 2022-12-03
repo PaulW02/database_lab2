@@ -1,9 +1,6 @@
 package com.example.database_lab1.model;
 
-import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -54,6 +51,10 @@ public interface BooksDbInterface {
     Author getAuthorByName(String authorName) throws BooksDbException;
 
     List<Author> getAuthorsByBookId(int bookId) throws BooksDbException;
+
+    boolean loginUser(String username, String password) throws BooksDbException;
+
+    boolean registerUser(String name, String username, String password) throws BooksDbException;
 
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.

@@ -36,7 +36,11 @@ public class BooksPane extends VBox {
     private ComboBox<SearchMode> searchModeBox;
     private TextField searchField;
     private Button searchButton;
+    private Button loginBtn;
+    private Button signUpBtn;
 
+    private Label usernameLbl = new Label();
+    private boolean loggedIn = false;
     private MenuBar menuBar;
 
     public BooksPane(BooksDbMockImpl booksDb) {
@@ -74,7 +78,14 @@ public class BooksPane extends VBox {
         // init views and event handlers
         initBooksTable();
         initSearchView(controller);
+        initUserView(controller);
         initMenus(controller);
+
+        FlowPane topPane = new FlowPane();
+        topPane.setHgap(10);
+        topPane.setPadding(new Insets(10, 10, 10, 10));
+        usernameLbl.setAlignment(Pos.CENTER_RIGHT);
+        topPane.getChildren().addAll(loginBtn, signUpBtn, usernameLbl);
 
         FlowPane bottomPane = new FlowPane();
         bottomPane.setHgap(10);
@@ -82,6 +93,7 @@ public class BooksPane extends VBox {
         bottomPane.getChildren().addAll(searchModeBox, searchField, searchButton);
 
         BorderPane mainPane = new BorderPane();
+        mainPane.setTop(topPane);
         mainPane.setCenter(booksTable);
         mainPane.setBottom(bottomPane);
         mainPane.setPadding(new Insets(10, 10, 10, 10));
@@ -135,11 +147,105 @@ public class BooksPane extends VBox {
         });
     }
 
+    private void initUserView(Controller controller) {
+        loginBtn = new Button("Login");
+        signUpBtn = new Button("Sign up");
+
+        loginBtn.setOnAction(e -> {
+            initLoginUserView(controller);
+        });
+
+        signUpBtn.setOnAction(e -> {
+            initRegisterUserView(controller);
+        });
+    }
+    private void initLoginUserView(Controller controller) {
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Login");
+
+        Label usernameLbl = new Label("Username:");
+        TextField usernameField = new TextField ();
+        VBox usernameVbox = new VBox();
+        usernameVbox.getChildren().addAll(usernameLbl, usernameField);
+        usernameVbox.setSpacing(10);
+
+        Label passwordLbl = new Label("Password:");
+        TextField passwordField = new TextField ();
+        VBox passwordVbox = new VBox();
+        passwordVbox.getChildren().addAll(passwordLbl, passwordField);
+        passwordVbox.setSpacing(10);
+
+        Button login= new Button("Login");
+
+        login.setOnAction(e -> {
+            if (controller.onLoginUser(usernameField.getText(), passwordField.getText())){
+                popupwindow.close();
+                this.usernameLbl.setText("Hello " + usernameField.getText());
+                this.loggedIn = true;
+            }else{
+                showAlertAndWait("Wrong username or password, try again", Alert.AlertType.WARNING);
+            }
+        });
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(usernameVbox, passwordVbox, login);
+        layout.setAlignment(Pos.CENTER);
+        Scene loginScene= new Scene(layout, 500, 350);
+        popupwindow.setScene(loginScene);
+        popupwindow.showAndWait();
+    }
+    private void initRegisterUserView(Controller controller) {
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Sign up");
+
+        Label nameLbl = new Label("Name:");
+        TextField nameField = new TextField ();
+        VBox nameVbox = new VBox();
+        nameVbox.getChildren().addAll(nameLbl, nameField);
+        nameVbox.setSpacing(10);
+
+
+        Label usernameLbl = new Label("Username:");
+        TextField usernameField = new TextField ();
+        VBox usernameVbox = new VBox();
+        usernameVbox.getChildren().addAll(usernameLbl, usernameField);
+        usernameVbox.setSpacing(10);
+
+        Label passwordLbl = new Label("Password:");
+        TextField passwordField = new TextField ();
+        VBox passwordVbox = new VBox();
+        passwordVbox.getChildren().addAll(passwordLbl, passwordField);
+        passwordVbox.setSpacing(10);
+
+        Button login= new Button("Login");
+
+        login.setOnAction(e -> {
+            if (controller.onRegisterUser(nameField.getText(), usernameField.getText(), passwordField.getText())){
+                popupwindow.close();
+            }else{
+                showAlertAndWait("User already exists, try another username", Alert.AlertType.WARNING);
+            }
+        });
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(nameVbox, usernameVbox, passwordVbox, login);
+        layout.setAlignment(Pos.CENTER);
+        Scene signupScene= new Scene(layout, 500, 350);
+        popupwindow.setScene(signupScene);
+        popupwindow.showAndWait();
+    }
+
     private void initAddBookPopup(Controller controller){
         Stage popupwindow=new Stage();
 
         popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("This is a pop up window");
+        popupwindow.setTitle("Add book");
 
         Label titleLbl = new Label("Title:");
         TextField titleField = new TextField ();
@@ -167,14 +273,17 @@ public class BooksPane extends VBox {
 
         Button addBookBtn= new Button("Add book");
 
-        addBookBtn.setOnAction(e -> controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText()));
+        addBookBtn.setOnAction(e -> {
+            controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText());
+            popupwindow.close();
+        });
 
         VBox layout= new VBox(10);
 
         layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorVbox, addBookBtn);
         layout.setAlignment(Pos.CENTER);
-        Scene scene1= new Scene(layout, 300, 250);
-        popupwindow.setScene(scene1);
+        Scene addBookScene= new Scene(layout, 600, 350);
+        popupwindow.setScene(addBookScene);
         popupwindow.showAndWait();
     }
 

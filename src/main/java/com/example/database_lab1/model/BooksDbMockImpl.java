@@ -5,6 +5,8 @@
  */
 package com.example.database_lab1.model;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +61,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             searchTitle = searchTitle.toLowerCase();
-            connect(DB_NAME);
             String sql = "SELECT * FROM book WHERE title LIKE '%" + searchTitle + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -78,7 +79,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             List<Book> result = new ArrayList<>();
-            connect(DB_NAME);
             String sql = "SELECT * FROM book WHERE ISBN LIKE '%" + searchISBN + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -98,7 +98,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
         try{
             List<Book> result = new ArrayList<>();
             searchAuthor = searchAuthor.toLowerCase();
-            connect(DB_NAME);
             String sql = "SELECT * FROM book b, author  a, book_author ba WHERE b.bookid = ba.bookid AND ba.authorid = a.authorid AND a.name LIKE '%"+searchAuthor+"%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -118,7 +117,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             searchGenre = searchGenre.toLowerCase();
-            connect(DB_NAME);
             String sql = "SELECT * FROM book b, book_genre bg, genre g WHERE b.bookid = bg.bookid AND bg.genre_id = g.genre AND g.genre_name LIKE '%" + searchGenre + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -137,7 +135,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             List<Book> result = new ArrayList<>();
-            connect(DB_NAME);
             String sql = "SELECT * FROM book b, review r WHERE b.bookid = r.bookid AND stars LIKE '%" + searchStars + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
@@ -155,7 +152,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public Book addBook(String title, String isbn, Date published, String authorName)
             throws BooksDbException {
         try {
-            connect(DB_NAME);
             String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, title);
@@ -175,7 +171,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException {
         String sql;
         PreparedStatement stmt;
-        connect(DB_NAME);
         sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
         stmt = this.con.prepareStatement(sql);
         int bookId = getBookIdByTitleAndISBN(title, isbn);
@@ -189,7 +184,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public int getBookIdByTitleAndISBN(String title, String isbn)
             throws BooksDbException {
         try {
-            connect(DB_NAME);
             String sql = "SELECT * FROM book WHERE title = ? AND isbn = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, title);
@@ -210,7 +204,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             if (getAuthorByName(authorName).getAuthorId() == 0) {
-                connect(DB_NAME);
                 String sql = "INSERT INTO author (name) VALUES (?)";
                 PreparedStatement stmt = this.con.prepareStatement(sql);
                 stmt.setString(1, authorName);
@@ -224,7 +217,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
     @Override
     public Author getAuthorByName(String authorName) throws BooksDbException{
         try {
-            connect(DB_NAME);
             String sql = "SELECT * FROM author WHERE name = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, authorName);
@@ -246,7 +238,6 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             List<Author> result = new ArrayList<>();
-            connect(DB_NAME);
             String sql = "SELECT a.author_id, a.name FROM book b, author a, book_author ba WHERE b.book_id = ba.book_id AND ba.author_id = a.author_id AND b.book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
@@ -259,6 +250,83 @@ public class BooksDbMockImpl implements BooksDbInterface {
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
+    }
+
+    @Override
+    public boolean loginUser(String username, String password)
+            throws BooksDbException {
+        try {
+            User user = null;
+            String sql = "SELECT * FROM user WHERE username = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                user = new User(rs.getInt("user_id"), rs.getString("name"), rs.getString("username"), rs.getString("password"));
+            }
+            return user != null && user.getPassword().equals(encryptPassword(password)) ? true : false;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public boolean registerUser(String name, String username, String password)
+            throws BooksDbException {
+        try {
+            String sql = "SELECT * FROM user WHERE username = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+            if (!rs.next()){
+                sql = "INSERT INTO user (name, username, password) VALUES (?, ?, ?)";
+                stmt = this.con.prepareStatement(sql);
+                stmt.setString(1, name);
+                stmt.setString(2, username);
+                stmt.setString(3, encryptPassword(password));
+                stmt.executeUpdate();
+                return true;
+            }else{
+                return false;
+            }
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    private String encryptPassword(String password){
+        String encryptedpassword = null;
+        try
+        {
+            /* MessageDigest instance for MD5. */
+            MessageDigest m = MessageDigest.getInstance("MD5");
+
+            /* Add plain-text password bytes to digest using MD5 update() method. */
+            m.update(password.getBytes());
+
+            /* Convert the hash value into bytes */
+            byte[] bytes = m.digest();
+
+            /* The bytes array has bytes in decimal form. Converting it into hexadecimal format. */
+            StringBuilder s = new StringBuilder();
+            for(int i=0; i< bytes.length ;i++)
+            {
+                s.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+            }
+
+            /* Complete hashed password in hexadecimal format */
+            encryptedpassword = s.toString();
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            e.printStackTrace();
+        }
+
+        /* Display the unencrypted and encrypted passwords. */
+        System.out.println("Plain-text password: " + password);
+        System.out.println("Encrypted password using MD5: " + encryptedpassword);
+        return encryptedpassword;
     }
 
 
