@@ -3,10 +3,7 @@ package com.example.database_lab1.view;
 import java.sql.Date;
 import java.util.List;
 
-import com.example.database_lab1.model.Book;
-import com.example.database_lab1.model.BooksDbImpl;
-import com.example.database_lab1.model.Genre;
-import com.example.database_lab1.model.SearchMode;
+import com.example.database_lab1.model.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -34,6 +31,8 @@ public class BooksPane extends VBox {
 
     private ComboBox<SearchMode> searchModeBox;
     private ComboBox<Genre> genreComboBox;
+    private ComboBox<Book> booksComboBox;
+    private ComboBox<Author> authorsComboBox;
     private TextField searchField;
     private Button searchButton;
     private Button loginBtn;
@@ -300,35 +299,26 @@ public class BooksPane extends VBox {
         popupwindow.initModality(Modality.APPLICATION_MODAL);
         popupwindow.setTitle("Remove book");
 
-        Label titleLbl = new Label("Title:");
-        TextField titleField = new TextField ();
-        VBox titleVbox = new VBox();
-        titleVbox.getChildren().addAll(titleLbl, titleField);
-        titleVbox.setSpacing(10);
-
-        Label isbnLbl = new Label("ISBN:");
-        TextField isbnField = new TextField ();
-        VBox isbnVbox = new VBox();
-        isbnVbox.getChildren().addAll(isbnLbl, isbnField);
-        isbnVbox.setSpacing(10);
-
-        Label publishedLbl = new Label("Published:");
-        DatePicker publishedField = new DatePicker();
-        VBox publishedVbox = new VBox();
-        publishedVbox.getChildren().addAll(publishedLbl, publishedField);
-        publishedVbox.setSpacing(10);
+        Label booksLbl = new Label("Choose a book to delete:");
+        booksComboBox = new ComboBox<>();
+        booksComboBox.getItems().addAll(controller.getAllBooks());
+        VBox booksVbox = new VBox();
+        booksVbox.getChildren().addAll(booksLbl, booksComboBox);
+        booksVbox.setSpacing(10);
+        booksVbox.setAlignment(Pos.CENTER);
 
         Button removeBookBtn= new Button("Remove book");
 
         removeBookBtn.setOnAction(e -> {
-            controller.onRemoveBook(titleField.getText(), isbnField.getText(), Date.valueOf(publishedField.getValue()));
+            controller.onRemoveBook(booksComboBox.getValue().getBookId());
             popupwindow.close();
         });
 
         VBox layout= new VBox(10);
 
-        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox,removeBookBtn);
+        layout.getChildren().addAll(booksVbox,removeBookBtn);
         layout.setAlignment(Pos.CENTER);
+        layout.setSpacing(40);
         Scene addBookScene= new Scene(layout, 600, 350);
         popupwindow.setScene(addBookScene);
         popupwindow.showAndWait();

@@ -44,11 +44,11 @@ public class Controller {
         }
     }
 
-    protected void onRemoveBook(String title, String isbn, Date published){
+    protected void onRemoveBook(int bookId){
         try {
-            if (title != null && isbn != null && published != null){
+            if (bookId != 0){
                 booksDb.connect(DB_NAME);
-                booksDb.removeBook(title,isbn,published);
+                booksDb.removeBook(bookId);
             }else{
                 booksView.showAlertAndWait("Fill in all fields!",WARNING);
             }
@@ -144,6 +144,16 @@ public class Controller {
             booksView.showAlertAndWait("Database error.",ERROR);
         }
         return false;
+    }
+
+    public List<Book> getAllBooks() {
+        try{
+            booksDb.connect(DB_NAME);
+            return booksDb.getAllBooks();
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
+        return new ArrayList<>();
     }
 
 

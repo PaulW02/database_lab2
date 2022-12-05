@@ -38,7 +38,7 @@ public interface BooksDbInterface {
 
     List<Book> searchBooksByStars(String searchStars) throws BooksDbException;
 
-    boolean removeBook(String title, String isbn, Date published) throws BooksDbException;
+    boolean removeBook(int bookId) throws BooksDbException;
 
     Book addBook(String title, String isbn, Date published, String authorName, String genre)
             throws BooksDbException;

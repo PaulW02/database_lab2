@@ -309,16 +309,14 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     @Override
-    public boolean removeBook(String title, String isbn, Date published)
-            throws BooksDbException {
+    public boolean removeBook(int bookId) throws BooksDbException {
         try {
             con.setAutoCommit(false);
-            removeBookIdToBook(title,isbn);
-            String sql = "DELETE FROM book WHERE title =? AND isbn = ? AND published = ?";
+            removeBookFromAuthor(bookId);
+            removeBookFromGenre(bookId);
+            String sql = "DELETE FROM book WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, title);
-            stmt.setString(2, isbn);
-            stmt.setDate(3, published);
+            stmt.setInt(1, bookId);
             stmt.executeUpdate();
             con.commit();
             con.setAutoCommit(true);
@@ -328,15 +326,26 @@ public class BooksDbImpl implements BooksDbInterface {
         }
     }
 
-    private void removeBookIdToBook(String title, String isbn)throws BooksDbException, SQLException{
-        con.setAutoCommit(false);
-        String sql = "DELETE FROM book_author WHERE book_id = ?";
-        PreparedStatement stmt = this.con.prepareStatement(sql);
-        int bookId = getBookIdByTitleAndISBN(title,isbn);
-        stmt.setInt(1,bookId);
-        stmt.executeUpdate();
-        con.commit();
-        con.setAutoCommit(true);
+    private void removeBookFromAuthor(int bookId) throws BooksDbException{
+        try {
+            String sql = "DELETE FROM book_author WHERE book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    private void removeBookFromGenre(int bookId) throws BooksDbException{
+        try {
+            String sql = "DELETE FROM book_genre WHERE book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
     }
 
     @Override
