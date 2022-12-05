@@ -56,15 +56,12 @@ public class Controller {
             booksView.showAlertAndWait("Database error",ERROR);
         }
     }
-    public void onGetTitleIsbn(String text, String text1) {
 
-    }
-
-    public void onUpdateBook(String title, String isbn,String title2){
+    public void onUpdateBook(String title, String isbn,String newTitle){
         try {
             if (title != null){
                 booksDb.connect(DB_NAME);
-                booksDb.updateBook(title,isbn);
+                booksDb.updateBook(title,newTitle,isbn);
             }else{
                 booksView.showAlertAndWait("Fill in all fields!",WARNING);
             }

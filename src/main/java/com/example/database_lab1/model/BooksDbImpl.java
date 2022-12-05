@@ -98,7 +98,7 @@ public class BooksDbImpl implements BooksDbInterface {
         try{
             List<Book> result = new ArrayList<>();
             searchAuthor = searchAuthor.toLowerCase();
-            String sql = "SELECT * FROM book b, author  a, book_author ba WHERE b.bookid = ba.bookid AND ba.authorid = a.authorid AND a.name LIKE '%"+searchAuthor+"%'";
+            String sql = "SELECT * FROM book b INNER JOIN book_author ba ON b.book_id = ba.book_id INNER JOIN author a ON ba.author_id = a.author_id WHERE a.name LIKE '%"+searchAuthor+"%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -117,7 +117,7 @@ public class BooksDbImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             searchGenre = searchGenre.toLowerCase();
-            String sql = "SELECT * FROM book b, book_genre bg, genre g WHERE b.bookid = bg.bookid AND bg.genre_id = g.genre AND g.genre_name LIKE '%" + searchGenre + "%'";
+            String sql = "SELECT * FROM book b, book_genre bg, genre g WHERE b.book_id = bg.book_id AND bg.genre_id = g.genre AND g.genre_name LIKE '%" + searchGenre + "%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -148,13 +148,12 @@ public class BooksDbImpl implements BooksDbInterface {
         }
     }
     @Override
-    public void updateBook(String title, String isbn)
+    public void updateBook(String title, String newTitle, String isbn)
             throws BooksDbException{
         try{
-            int bookId = getBookIdByTitleAndISBN(title,isbn);
-            String sql = "UPDATE book SET title = ? WHERE book_id  = book_id";
+            String sql = "UPDATE book SET title = newTitle WHERE title = title AND isbn = isbn";
             PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, title);
+            stmt.setString(1,title);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println("");
@@ -233,7 +232,6 @@ public class BooksDbImpl implements BooksDbInterface {
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
-
     }
 
     @Override
