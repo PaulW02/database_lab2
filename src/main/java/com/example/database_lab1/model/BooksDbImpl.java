@@ -20,13 +20,13 @@ import java.util.List;
  *
  * @author anderslm@kth.se
  */
-public class BooksDbMockImpl implements BooksDbInterface {
+public class BooksDbImpl implements BooksDbInterface {
 
     public static final String DB_NAME = "booksdb";
     private Connection con;
     private final List<Book> books;
 
-    public BooksDbMockImpl() {
+    public BooksDbImpl() {
         books = Arrays.asList(DATA);
     }
 
@@ -36,7 +36,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
         this.con = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(server, "root", "123457");
+            con = DriverManager.getConnection(server, "root", "1234");
             System.out.println("Connection done!");
             return true;
         } catch (ClassNotFoundException e) {
@@ -149,9 +149,10 @@ public class BooksDbMockImpl implements BooksDbInterface {
     }//gör man såhär för stars?
 
     @Override
-    public Book addBook(String title, String isbn, Date published, String authorName)
+    public Book addBook(String title, String isbn, Date published, String authorName, String genre)
             throws BooksDbException {
         try {
+            this.con.setAutoCommit(false);
             String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, title);
@@ -160,24 +161,66 @@ public class BooksDbMockImpl implements BooksDbInterface {
             stmt.executeUpdate();
             addAuthor(authorName);
             addAuthorToBook(title, isbn, authorName);
-            return new Book(getBookIdByTitleAndISBN(title, isbn), title, isbn, published);
+            addGenreToBook(title, isbn, genre);
+            int bookId = getBookIdByTitleAndISBN(title, isbn);
+            this.con.commit();
+            this.con.setAutoCommit(true);
+            return new Book(bookId, title, isbn, published);
         } catch (SQLException e) {
-            System.out.println("");
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }
 
     @Override
-    public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException {
-        String sql;
-        PreparedStatement stmt;
-        sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
-        stmt = this.con.prepareStatement(sql);
-        int bookId = getBookIdByTitleAndISBN(title, isbn);
-        int authorId = getAuthorByName(authorName).getAuthorId();
-        stmt.setInt(1, bookId);
-        stmt.setInt(2, authorId);
-        stmt.executeUpdate();
+    public void addGenreToBook(String title, String isbn, String genre) throws BooksDbException {
+        try {
+            String sql;
+            PreparedStatement stmt;
+            sql = "INSERT INTO book_genre (book_id, genre_id) VALUES (?,?)";
+            stmt = this.con.prepareStatement(sql);
+            int bookId = getBookIdByTitleAndISBN(title, isbn);
+            int genreId = getGenreIdByGenreName(genre);
+            stmt.setInt(1, bookId);
+            stmt.setInt(2, genreId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    private int getGenreIdByGenreName(String genre)
+            throws BooksDbException {
+        try {
+            String sql = "SELECT genre_id FROM genre WHERE genre_name = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, genre);
+            ResultSet rs = stmt.executeQuery();
+            int genreId = 0;
+            while (rs.next()){
+                genreId = rs.getInt("genre_id");
+            }
+            return genreId;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException {
+        try {
+            String sql;
+            PreparedStatement stmt;
+            sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
+            stmt = this.con.prepareStatement(sql);
+            int bookId = getBookIdByTitleAndISBN(title, isbn);
+            int authorId = getAuthorByName(authorName).getAuthorId();
+            stmt.setInt(1, bookId);
+            stmt.setInt(2, authorId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+
     }
 
     @Override
@@ -275,6 +318,7 @@ public class BooksDbMockImpl implements BooksDbInterface {
     public boolean registerUser(String name, String username, String password)
             throws BooksDbException {
         try {
+            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM user WHERE username = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, username);
@@ -286,8 +330,12 @@ public class BooksDbMockImpl implements BooksDbInterface {
                 stmt.setString(2, username);
                 stmt.setString(3, encryptPassword(password));
                 stmt.executeUpdate();
+                this.con.commit();
+                this.con.setAutoCommit(true);
                 return true;
             }else{
+                this.con.rollback();
+                this.con.setAutoCommit(true);
                 return false;
             }
         } catch (SQLException e) {

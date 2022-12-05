@@ -10,7 +10,6 @@ import java.util.List;
  * @author anderslm@kth.se
  */
 public class Book {
-    
     private int bookId;
     private String isbn; // should check format
     private String title;
@@ -18,6 +17,7 @@ public class Book {
     private String storyLine = "";
 
     private List<Author> authors;
+    private List<Genre> genres;
     // TODO: 
     // Add authors, as a separate class(!), and corresponding methods, to your implementation
     // as well, i.e. "private ArrayList<Author> authors;"
@@ -28,6 +28,7 @@ public class Book {
         this.title = title;
         this.published = published;
         this.authors = new ArrayList<>();
+        this.genres = new ArrayList<>();
     }
     
     public Book(String isbn, String title, Date published) {
@@ -50,6 +51,14 @@ public class Book {
 
     public void setAuthors(List<Author> authors) {
         this.authors = authors;
+    }
+
+    public List<Genre> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(List<Genre> genres) {
+        this.genres = genres;
     }
 
     @Override

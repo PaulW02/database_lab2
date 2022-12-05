@@ -3,9 +3,9 @@ package com.example.database_lab1.view;
 import java.sql.Date;
 import java.util.List;
 
-import com.example.database_lab1.model.Author;
 import com.example.database_lab1.model.Book;
-import com.example.database_lab1.model.BooksDbMockImpl;
+import com.example.database_lab1.model.BooksDbImpl;
+import com.example.database_lab1.model.Genre;
 import com.example.database_lab1.model.SearchMode;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -18,7 +18,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
-import javafx.stage.Popup;
 import javafx.stage.Stage;
 
 
@@ -34,6 +33,7 @@ public class BooksPane extends VBox {
     private ObservableList<Book> booksInTable; // the data backing the table view
 
     private ComboBox<SearchMode> searchModeBox;
+    private ComboBox<Genre> genreComboBox;
     private TextField searchField;
     private Button searchButton;
     private Button loginBtn;
@@ -43,7 +43,7 @@ public class BooksPane extends VBox {
     private boolean loggedIn = false;
     private MenuBar menuBar;
 
-    public BooksPane(BooksDbMockImpl booksDb) {
+    public BooksPane(BooksDbImpl booksDb) {
         final Controller controller = new Controller(booksDb, this);
         this.init(controller);
     }
@@ -166,13 +166,13 @@ public class BooksPane extends VBox {
         popupwindow.setTitle("Login");
 
         Label usernameLbl = new Label("Username:");
-        TextField usernameField = new TextField ();
+        TextField usernameField = new TextField();
         VBox usernameVbox = new VBox();
         usernameVbox.getChildren().addAll(usernameLbl, usernameField);
         usernameVbox.setSpacing(10);
 
         Label passwordLbl = new Label("Password:");
-        TextField passwordField = new TextField ();
+        PasswordField passwordField = new PasswordField();
         VBox passwordVbox = new VBox();
         passwordVbox.getChildren().addAll(passwordLbl, passwordField);
         passwordVbox.setSpacing(10);
@@ -204,27 +204,27 @@ public class BooksPane extends VBox {
         popupwindow.setTitle("Sign up");
 
         Label nameLbl = new Label("Name:");
-        TextField nameField = new TextField ();
+        TextField nameField = new TextField();
         VBox nameVbox = new VBox();
         nameVbox.getChildren().addAll(nameLbl, nameField);
         nameVbox.setSpacing(10);
 
 
         Label usernameLbl = new Label("Username:");
-        TextField usernameField = new TextField ();
+        TextField usernameField = new TextField();
         VBox usernameVbox = new VBox();
         usernameVbox.getChildren().addAll(usernameLbl, usernameField);
         usernameVbox.setSpacing(10);
 
         Label passwordLbl = new Label("Password:");
-        TextField passwordField = new TextField ();
+        PasswordField passwordField = new PasswordField();
         VBox passwordVbox = new VBox();
         passwordVbox.getChildren().addAll(passwordLbl, passwordField);
         passwordVbox.setSpacing(10);
 
-        Button login= new Button("Login");
+        Button register= new Button("Register");
 
-        login.setOnAction(e -> {
+        register.setOnAction(e -> {
             if (controller.onRegisterUser(nameField.getText(), usernameField.getText(), passwordField.getText())){
                 popupwindow.close();
             }else{
@@ -234,7 +234,7 @@ public class BooksPane extends VBox {
 
         VBox layout= new VBox(10);
 
-        layout.getChildren().addAll(nameVbox, usernameVbox, passwordVbox, login);
+        layout.getChildren().addAll(nameVbox, usernameVbox, passwordVbox, register);
         layout.setAlignment(Pos.CENTER);
         Scene signupScene= new Scene(layout, 500, 350);
         popupwindow.setScene(signupScene);
@@ -248,13 +248,13 @@ public class BooksPane extends VBox {
         popupwindow.setTitle("Add book");
 
         Label titleLbl = new Label("Title:");
-        TextField titleField = new TextField ();
+        TextField titleField = new TextField();
         VBox titleVbox = new VBox();
         titleVbox.getChildren().addAll(titleLbl, titleField);
         titleVbox.setSpacing(10);
 
         Label isbnLbl = new Label("ISBN:");
-        TextField isbnField = new TextField ();
+        TextField isbnField = new TextField();
         VBox isbnVbox = new VBox();
         isbnVbox.getChildren().addAll(isbnLbl, isbnField);
         isbnVbox.setSpacing(10);
@@ -266,21 +266,28 @@ public class BooksPane extends VBox {
         publishedVbox.setSpacing(10);
 
         Label authorLbl = new Label("Author:");
-        TextField authorField = new TextField ();
+        TextField authorField = new TextField();
         VBox authorVbox = new VBox();
         authorVbox.getChildren().addAll(authorLbl, authorField);
         authorVbox.setSpacing(10);
 
+        Label genreLbl = new Label("Genre:");
+        genreComboBox = new ComboBox<>();
+        genreComboBox.getItems().addAll(Genre.values());
+        VBox genreVbox = new VBox();
+        genreVbox.getChildren().addAll(genreLbl, genreComboBox);
+        genreVbox.setSpacing(10);
+
         Button addBookBtn= new Button("Add book");
 
         addBookBtn.setOnAction(e -> {
-            controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText());
+            controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText(), genreComboBox.getValue().toString());
             popupwindow.close();
         });
 
         VBox layout= new VBox(10);
 
-        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorVbox, addBookBtn);
+        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorVbox, genreVbox, addBookBtn);
         layout.setAlignment(Pos.CENTER);
         Scene addBookScene= new Scene(layout, 600, 350);
         popupwindow.setScene(addBookScene);
@@ -308,7 +315,11 @@ public class BooksPane extends VBox {
         manageMenu.getItems().addAll(addItem, removeItem, updateItem);
 
         EventHandler<ActionEvent> addBookHandler = actionEvent -> {
-            initAddBookPopup(controller); // save data?
+            if (loggedIn) {
+                initAddBookPopup(controller); // save data?
+            }else{
+                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
+            }
         };
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 

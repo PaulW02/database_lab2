@@ -1,6 +1,6 @@
 package com.example.database_lab1;
 
-import com.example.database_lab1.model.BooksDbMockImpl;
+import com.example.database_lab1.model.BooksDbImpl;
 import com.example.database_lab1.view.BooksPane;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -16,7 +16,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
 
-        BooksDbMockImpl booksDb = new BooksDbMockImpl(); // model
+        BooksDbImpl booksDb = new BooksDbImpl(); // model
         // Don't forget to connect to the db, somewhere...
 
         BooksPane root = new BooksPane(booksDb);
