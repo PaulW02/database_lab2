@@ -394,7 +394,11 @@ public class BooksPane extends VBox {
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 
         EventHandler<ActionEvent> removeBookHandler = actionEvent -> {
-            initRemoveBookPopup(controller); // save data?
+            if (loggedIn) {
+                initRemoveBookPopup(controller); // save data?
+            }else{
+                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
+            }// save data?
         };
         removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
 
