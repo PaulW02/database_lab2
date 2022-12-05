@@ -63,6 +63,10 @@ public interface BooksDbInterface {
 
     boolean registerUser(String name, String username, String password) throws BooksDbException;
 
+    List<Book> getAllBooks() throws BooksDbException;
+
+    List<Author> getAllAuthors() throws BooksDbException;
+
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.
 }

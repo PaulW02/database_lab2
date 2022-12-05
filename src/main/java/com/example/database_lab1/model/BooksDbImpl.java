@@ -318,13 +318,12 @@ public class BooksDbImpl implements BooksDbInterface {
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, title);
             stmt.setString(2, isbn);
-            stmt.setDate(3,published);
+            stmt.setDate(3, published);
             stmt.executeUpdate();
             con.commit();
             con.setAutoCommit(true);
             return true;
         } catch (SQLException e) {
-            System.out.println("");
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }
@@ -384,6 +383,40 @@ public class BooksDbImpl implements BooksDbInterface {
                 this.con.setAutoCommit(true);
                 return false;
             }
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public List<Book> getAllBooks() throws BooksDbException {
+        try {
+            List<Book> books = new ArrayList<>();
+            this.con.setAutoCommit(false);
+            String sql = "SELECT * FROM book";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()){
+                books.add(new Book(rs.getInt("book_id"), rs.getString("title"), rs.getString("isbn"), rs.getDate("published")));
+            }
+            return books;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public List<Author> getAllAuthors() throws BooksDbException {
+        try {
+            List<Author> authors = new ArrayList<>();
+            this.con.setAutoCommit(false);
+            String sql = "SELECT * FROM author";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()){
+                authors.add(new Author(rs.getInt("author_id"), rs.getString("name")));
+            }
+            return authors;
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
