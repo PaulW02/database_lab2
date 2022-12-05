@@ -340,6 +340,43 @@ public class BooksPane extends VBox {
         popupwindow.initModality(Modality.APPLICATION_MODAL);
         popupwindow.setTitle("Update book");
 
+        Label booksLbl = new Label("Choose a book to update:");
+        booksComboBox = new ComboBox<>();
+        booksComboBox.getItems().addAll(controller.getAllBooks());
+        VBox booksVbox = new VBox();
+        booksVbox.getChildren().addAll(booksLbl, booksComboBox);
+        booksVbox.setSpacing(10);
+        booksVbox.setAlignment(Pos.CENTER);
+
+        Button updateBookBtn= new Button("Update book");
+/*
+        updateBookBtn.setOnAction(e -> {
+            controller.onUpdateBook(booksComboBox.getValue().getBookId());
+            popupwindow.close();
+        });
+*/
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(booksVbox,updateBookBtn);
+        layout.setAlignment(Pos.CENTER);
+        layout.setSpacing(40);
+        Scene addBookScene= new Scene(layout, 600, 350);
+        popupwindow.setScene(addBookScene);
+        popupwindow.showAndWait();
+
+        /*Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Update book");
+
+        Label booksLbl = new Label("Choose a book to update:");
+        booksComboBox = new ComboBox<>();
+        booksComboBox.getItems().addAll(controller.getAllBooks());
+        VBox booksVbox = new VBox();
+        booksVbox.getChildren().addAll(booksLbl, booksComboBox);
+        booksVbox.setSpacing(10);
+        booksVbox.setAlignment(Pos.CENTER);
+
         Label titleLbl = new Label("Title:");
         TextField titleField = new TextField ();
         VBox titleVbox = new VBox();
@@ -352,7 +389,7 @@ public class BooksPane extends VBox {
         isbnVbox.getChildren().addAll(isbnLbl, isbnField);
         isbnVbox.setSpacing(10);
 
-        Label newTitleLbl = new Label("Title:");
+        Label newTitleLbl = new Label("New Title:");
         TextField newTitleField = new TextField ();
         VBox newTitleVbox = new VBox();
         titleVbox.getChildren().addAll(newTitleLbl, newTitleField);
@@ -361,7 +398,7 @@ public class BooksPane extends VBox {
         Button updateBookBtn= new Button("Update book");
 
         updateBookBtn.setOnAction(e -> {
-            controller.onUpdateBook(newTitleField.getText(),titleField.getText(), isbnField.getText());
+            controller.onUpdateBook(titleField.getText(), isbnField.getText(),newTitleField.getText());
             popupwindow.close();
         });
 
@@ -371,7 +408,7 @@ public class BooksPane extends VBox {
         layout.setAlignment(Pos.CENTER);
         Scene addBookScene= new Scene(layout, 600, 350);
         popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();
+        popupwindow.showAndWait();*/
     }
 
     private void initMenus(Controller controller) {
