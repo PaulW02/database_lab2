@@ -43,6 +43,19 @@ public class Controller {
         }
     }
 
+    protected void onRemoveBook(String title, String isbn, Date published){
+        try {
+            if (title != null && isbn != null && published != null){
+                booksDb.connect(DB_NAME);
+                booksDb.removeBook(title,isbn,published);
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!",WARNING);
+            }
+        }catch (Exception e){
+            booksView.showAlertAndWait("Database error",ERROR);
+        }
+    }
+
     protected void onSearchSelected(String searchFor, SearchMode mode) {
         try {
             System.out.println(searchFor);

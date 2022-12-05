@@ -1,6 +1,7 @@
 package com.example.database_lab1.model;
 
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -37,8 +38,9 @@ public interface BooksDbInterface {
 
     List<Book> searchBooksByStars(String searchStars) throws BooksDbException;
 
-    Book addBook(String title, String isbn, java.sql.Date published, String authorName)
-            throws BooksDbException;
+    boolean removeBook(String title, String isbn, java.sql.Date published) throws BooksDbException;
+
+    Book addBook(String title, String isbn, java.sql.Date published, String authorName) throws BooksDbException;
 
     void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException;
 
