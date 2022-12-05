@@ -146,7 +146,7 @@ public class BooksDbImpl implements BooksDbInterface {
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
-    }//gör man såhär för stars?
+    }
 
     @Override
     public Book addBook(String title, String isbn, Date published, String authorName, String genre)
@@ -296,6 +296,38 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     @Override
+    public boolean removeBook(String title, String isbn, Date published)
+            throws BooksDbException {
+        try {
+            con.setAutoCommit(false);
+            removeBookIdToBook(title,isbn);
+            String sql = "DELETE FROM book WHERE title =? AND isbn = ? AND published = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, title);
+            stmt.setString(2, isbn);
+            stmt.setDate(3,published);
+            stmt.executeUpdate();
+            con.commit();
+            con.setAutoCommit(true);
+            return true;
+        } catch (SQLException e) {
+            System.out.println("");
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    private void removeBookIdToBook(String title, String isbn)throws BooksDbException, SQLException{
+        con.setAutoCommit(false);
+        String sql = "DELETE FROM book_author WHERE book_id = ?";
+        PreparedStatement stmt = this.con.prepareStatement(sql);
+        int bookId = getBookIdByTitleAndISBN(title,isbn);
+        stmt.setInt(1,bookId);
+        stmt.executeUpdate();
+        con.commit();
+        con.setAutoCommit(true);
+    }
+
+    @Override
     public boolean loginUser(String username, String password)
             throws BooksDbException {
         try {
@@ -313,6 +345,7 @@ public class BooksDbImpl implements BooksDbInterface {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }
+
 
     @Override
     public boolean registerUser(String name, String username, String password)

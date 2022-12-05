@@ -294,6 +294,46 @@ public class BooksPane extends VBox {
         popupwindow.showAndWait();
     }
 
+    private void initRemoveBookPopup(Controller controller){
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Remove book");
+
+        Label titleLbl = new Label("Title:");
+        TextField titleField = new TextField ();
+        VBox titleVbox = new VBox();
+        titleVbox.getChildren().addAll(titleLbl, titleField);
+        titleVbox.setSpacing(10);
+
+        Label isbnLbl = new Label("ISBN:");
+        TextField isbnField = new TextField ();
+        VBox isbnVbox = new VBox();
+        isbnVbox.getChildren().addAll(isbnLbl, isbnField);
+        isbnVbox.setSpacing(10);
+
+        Label publishedLbl = new Label("Published:");
+        DatePicker publishedField = new DatePicker();
+        VBox publishedVbox = new VBox();
+        publishedVbox.getChildren().addAll(publishedLbl, publishedField);
+        publishedVbox.setSpacing(10);
+
+        Button removeBookBtn= new Button("Remove book");
+
+        removeBookBtn.setOnAction(e -> {
+            controller.onRemoveBook(titleField.getText(), isbnField.getText(), Date.valueOf(publishedField.getValue()));
+            popupwindow.close();
+        });
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox,removeBookBtn);
+        layout.setAlignment(Pos.CENTER);
+        Scene addBookScene= new Scene(layout, 600, 350);
+        popupwindow.setScene(addBookScene);
+        popupwindow.showAndWait();
+    }
+
     private void initMenus(Controller controller) {
 
         Menu fileMenu = new Menu("File");
@@ -322,6 +362,11 @@ public class BooksPane extends VBox {
             }
         };
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
+
+        EventHandler<ActionEvent> removeBookHandler = actionEvent -> {
+            initRemoveBookPopup(controller); // save data?
+        };
+        removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
 
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu);

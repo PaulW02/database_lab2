@@ -1,5 +1,7 @@
 package com.example.database_lab1.model;
 
+import org.w3c.dom.ls.LSOutput;
+
 public class User {
 
     private int userId;
@@ -18,7 +20,6 @@ public class User {
     }
 
     public User(String name, String username, String password) {this(-1,name,username,password);}
-
     public int getUserId() {
         return userId;
     }
