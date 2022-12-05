@@ -16,7 +16,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
+import org.controlsfx.control.Rating;
 
 /**
  * The main pane for the view, extending VBox and including the menus. An
@@ -35,12 +35,13 @@ public class BooksPane extends VBox {
     private ComboBox<Author> authorsComboBox;
     private TextField searchField;
     private Button searchButton;
-    private Button loginBtn;
-    private Button signUpBtn;
+    private Button loginBtn = new Button();
+    private Button signUpBtn = new Button();
 
     private Label usernameLbl = new Label();
-    private boolean loggedIn = false;
     private MenuBar menuBar;
+
+    private User currentUser = null;
 
     public BooksPane(BooksDbImpl booksDb) {
         final Controller controller = new Controller(booksDb, this);
@@ -147,8 +148,8 @@ public class BooksPane extends VBox {
     }
 
     private void initUserView(Controller controller) {
-        loginBtn = new Button("Login");
-        signUpBtn = new Button("Sign up");
+        loginBtn.setText("Login");
+        signUpBtn.setText("Sign up");
 
         loginBtn.setOnAction(e -> {
             initLoginUserView(controller);
@@ -179,10 +180,19 @@ public class BooksPane extends VBox {
         Button login= new Button("Login");
 
         login.setOnAction(e -> {
-            if (controller.onLoginUser(usernameField.getText(), passwordField.getText())){
+            this.currentUser = controller.onLoginUser(usernameField.getText(), passwordField.getText());
+            if (this.currentUser != null){
                 popupwindow.close();
                 this.usernameLbl.setText("Hello " + usernameField.getText());
-                this.loggedIn = true;
+                loginBtn.setText("Log out");
+                loginBtn.setOnAction(l -> {
+                    this.currentUser = null;
+                    this.usernameLbl.setText("");
+                    signUpBtn.setDisable(false);
+                    initUserView(controller);
+                });
+                signUpBtn.setDisable(true);
+
             }else{
                 showAlertAndWait("Wrong username or password, try again", Alert.AlertType.WARNING);
             }
@@ -382,10 +392,11 @@ public class BooksPane extends VBox {
         MenuItem addItem = new MenuItem("Add");
         MenuItem removeItem = new MenuItem("Remove");
         MenuItem updateItem = new MenuItem("Update");
-        manageMenu.getItems().addAll(addItem, removeItem, updateItem);
+        MenuItem reviewItem = new MenuItem("Review");
+        manageMenu.getItems().addAll(addItem, removeItem, updateItem, reviewItem);
 
         EventHandler<ActionEvent> addBookHandler = actionEvent -> {
-            if (loggedIn) {
+            if (currentUser != null) {
                 initAddBookPopup(controller); // save data?
             }else{
                 showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
@@ -394,7 +405,7 @@ public class BooksPane extends VBox {
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 
         EventHandler<ActionEvent> removeBookHandler = actionEvent -> {
-            if (loggedIn) {
+            if (currentUser != null) {
                 initRemoveBookPopup(controller); // save data?
             }else{
                 showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
@@ -407,8 +418,63 @@ public class BooksPane extends VBox {
         };
         updateItem.addEventHandler(ActionEvent.ACTION, updateBookHandler);
 
+        EventHandler<ActionEvent> reviewBookHandler = actionEvent -> {
+            if (currentUser != null) {
+                initReviewBookPopup(controller); // save data?
+            }else{
+                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
+            }// save data?
+        };
+        reviewItem.addEventHandler(ActionEvent.ACTION, reviewBookHandler);
 
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu);
+    }
+
+    private void initReviewBookPopup(Controller controller) {
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Remove book");
+
+        Label booksLbl = new Label("Choose a book to review:");
+        ComboBox<Book> booksNotReviewedComboBox = new ComboBox<>();
+        booksNotReviewedComboBox.getItems().addAll(controller.getBooksNotReviewed(this.currentUser.getUserId()));
+        VBox booksVbox = new VBox();
+        booksVbox.getChildren().addAll(booksLbl, booksNotReviewedComboBox);
+        booksVbox.setSpacing(10);
+        booksVbox.setAlignment(Pos.CENTER);
+
+        Label reviewLbl = new Label("Review:");
+        TextArea reviewTextArea = new TextArea();
+        VBox reviewTextVbox = new VBox();
+        reviewTextVbox.getChildren().addAll(reviewLbl, reviewTextArea);
+        reviewTextVbox.setSpacing(10);
+        reviewTextVbox.setAlignment(Pos.CENTER);
+
+        Label starsLbl = new Label("Stars:");
+        Rating rating = new Rating();
+        VBox ratingVbox = new VBox();
+        ratingVbox.getChildren().addAll(starsLbl, rating);
+        ratingVbox.setSpacing(10);
+        ratingVbox.setAlignment(Pos.CENTER);
+
+
+
+        Button reviewBookBtn= new Button("Submit review");
+
+        reviewBookBtn.setOnAction(e -> {
+            controller.onReviewBook(booksNotReviewedComboBox.getValue().getBookId(), this.currentUser.getUserId(), reviewTextArea.getText(), rating.getRating());
+            popupwindow.close();
+        });
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(booksVbox, reviewTextVbox, ratingVbox, reviewBookBtn);
+        layout.setAlignment(Pos.CENTER);
+        layout.setSpacing(40);
+        Scene addBookScene= new Scene(layout, 600, 350);
+        popupwindow.setScene(addBookScene);
+        popupwindow.showAndWait();
     }
 }

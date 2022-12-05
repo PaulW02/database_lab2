@@ -8,6 +8,7 @@ package com.example.database_lab1.model;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -349,7 +350,7 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     @Override
-    public boolean loginUser(String username, String password)
+    public User loginUser(String username, String password)
             throws BooksDbException {
         try {
             User user = null;
@@ -361,7 +362,7 @@ public class BooksDbImpl implements BooksDbInterface {
             while (rs.next()) {
                 user = new User(rs.getInt("user_id"), rs.getString("name"), rs.getString("username"), rs.getString("password"));
             }
-            return user != null && user.getPassword().equals(encryptPassword(password)) ? true : false;
+            return user.getPassword().equals(encryptPassword(password)) ? user : null;
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
@@ -401,7 +402,6 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> getAllBooks() throws BooksDbException {
         try {
             List<Book> books = new ArrayList<>();
-            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM book";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
@@ -418,7 +418,6 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Author> getAllAuthors() throws BooksDbException {
         try {
             List<Author> authors = new ArrayList<>();
-            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM author";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             ResultSet rs = stmt.executeQuery();
@@ -426,6 +425,39 @@ public class BooksDbImpl implements BooksDbInterface {
                 authors.add(new Author(rs.getInt("author_id"), rs.getString("name")));
             }
             return authors;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public void reviewBook(int bookId, int userId, double rating, String reviewText) throws BooksDbException {
+        try {
+            String sql = "INSERT INTO review (book_id, user_id, stars, review_text, review_date) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            stmt.setInt(2, userId);
+            stmt.setDouble(3, rating);
+            stmt.setString(4, reviewText);
+            stmt.setDate(5, Date.valueOf(LocalDate.now()));
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    @Override
+    public List<Book> getBooksNotReviewed(int userId) throws BooksDbException {
+        try {
+            List<Book> books = new ArrayList<>();
+            String sql = "SELECT * FROM book WHERE book_id NOT IN (SELECT b.book_id FROM book b, review r WHERE r.book_id = b.book_id AND r.user_id = ?)";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()){
+                books.add(new Book(rs.getInt("book_id"), rs.getString("title"), rs.getString("isbn"), rs.getDate("published")));
+            }
+            return books;
         } catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }

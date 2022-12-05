@@ -1,9 +1,6 @@
 package com.example.database_lab1.view;
 
-import com.example.database_lab1.model.Book;
-import com.example.database_lab1.model.BooksDbInterface;
-import com.example.database_lab1.model.Genre;
-import com.example.database_lab1.model.SearchMode;
+import com.example.database_lab1.model.*;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -60,7 +57,7 @@ public class Controller {
 
     }
 
-    public void onUpdateBook(String title, String isbn,String title2){
+    protected void onUpdateBook(String title, String isbn,String title2){
         try {
             if (title != null){
                 booksDb.connect(DB_NAME);
@@ -118,21 +115,21 @@ public class Controller {
         }
     }
 
-    protected boolean onLoginUser(String username, String password) {
+    protected User onLoginUser(String username, String password) {
         try{
             if (username != null && password != null){
                 booksDb.connect(DB_NAME);
-                return booksDb.loginUser(username, password) ? true : false;
+                return booksDb.loginUser(username, password);
             }else{
                 booksView.showAlertAndWait("Fill in all fields!", WARNING);
             }
         } catch (Exception e) {
             booksView.showAlertAndWait("Database error.",ERROR);
         }
-        return false;
+        return null;
     }
 
-    public boolean onRegisterUser(String name, String username, String password) {
+    protected boolean onRegisterUser(String name, String username, String password) {
         try{
             if (name != null && username != null && password != null){
                 booksDb.connect(DB_NAME);
@@ -146,7 +143,7 @@ public class Controller {
         return false;
     }
 
-    public List<Book> getAllBooks() {
+    protected List<Book> getAllBooks() {
         try{
             booksDb.connect(DB_NAME);
             return booksDb.getAllBooks();
@@ -154,6 +151,29 @@ public class Controller {
             booksView.showAlertAndWait("Database error.",ERROR);
         }
         return new ArrayList<>();
+    }
+
+    protected List<Book> getBooksNotReviewed(int userId) {
+        try{
+            booksDb.connect(DB_NAME);
+            return booksDb.getBooksNotReviewed(userId);
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
+        return new ArrayList<>();
+    }
+
+    protected void onReviewBook(int bookId, int userId, String reviewText, double rating) {
+        try{
+            if (bookId != 0 && userId != 0 && reviewText != null && rating != 0){
+                booksDb.connect(DB_NAME);
+                booksDb.reviewBook(bookId, userId, rating, reviewText);
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+            }
+        } catch (Exception e) {
+            booksView.showAlertAndWait("Database error.",ERROR);
+        }
     }
 
 
