@@ -40,7 +40,8 @@ public interface BooksDbInterface {
 
     boolean removeBook(String title, String isbn, Date published) throws BooksDbException;
 
-    Book addBook(String title, String isbn, java.sql.Date published, String authorName) throws BooksDbException;
+    Book addBook(String title, String isbn, Date published, String authorName, String genre)
+            throws BooksDbException;
 
     void addGenreToBook(String title, String isbn, String genre) throws BooksDbException;
 
