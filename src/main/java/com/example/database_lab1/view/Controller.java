@@ -2,6 +2,7 @@ package com.example.database_lab1.view;
 
 import com.example.database_lab1.model.Book;
 import com.example.database_lab1.model.BooksDbInterface;
+import com.example.database_lab1.model.Genre;
 import com.example.database_lab1.model.SearchMode;
 
 import java.sql.Date;
@@ -29,12 +30,12 @@ public class Controller {
         this.booksView = booksView;
     }
 
-    protected void onAddBook(String title, String isbn, LocalDate published, String authorName){
+    protected void onAddBook(String title, String isbn, LocalDate published, String authorName, String genre){
         try{
-            if (title != null && isbn != null && published != null && authorName != null){
+            if (title != null && isbn != null && published != null && authorName != null && genre != null){
                 Date publishedDate = Date.valueOf(published);
                 booksDb.connect(DB_NAME);
-                booksDb.addBook(title, isbn, publishedDate, authorName);
+                booksDb.addBook(title, isbn, publishedDate, authorName, genre);
             }else{
                 booksView.showAlertAndWait("Fill in all fields!", WARNING);
             }
