@@ -147,7 +147,20 @@ public class BooksDbMockImpl implements BooksDbInterface {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }
-
+    @Override
+    public void updateBook(String title, String isbn)
+            throws BooksDbException{
+        try{
+            int bookId = getBookIdByTitleAndISBN(title,isbn);
+            String sql = "UPDATE book SET title = ? WHERE book_id  = book_id";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, title);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("");
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
     @Override
     public Book addBook(String title, String isbn, Date published, String authorName)
             throws BooksDbException {

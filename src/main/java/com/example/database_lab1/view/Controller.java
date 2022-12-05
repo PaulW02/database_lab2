@@ -55,6 +55,22 @@ public class Controller {
             booksView.showAlertAndWait("Database error",ERROR);
         }
     }
+    public void onGetTitleIsbn(String text, String text1) {
+
+    }
+
+    public void onUpdateBook(String title, String isbn,String title2){
+        try {
+            if (title != null){
+                booksDb.connect(DB_NAME);
+                booksDb.updateBook(title,isbn);
+            }else{
+                booksView.showAlertAndWait("Fill in all fields!",WARNING);
+            }
+        }catch (Exception e){
+            booksView.showAlertAndWait("Database error",ERROR);
+        }
+    }
 
     protected void onSearchSelected(String searchFor, SearchMode mode) {
         try {
@@ -128,6 +144,7 @@ public class Controller {
         }
         return false;
     }
+
 
     // TODO:
     // Add methods for all types of user interaction (e.g. via  menus).

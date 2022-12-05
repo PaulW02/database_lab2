@@ -327,6 +327,46 @@ public class BooksPane extends VBox {
         popupwindow.showAndWait();
     }
 
+    private void initUpdateBookPopup(Controller controller){
+        Stage popupwindow=new Stage();
+
+        popupwindow.initModality(Modality.APPLICATION_MODAL);
+        popupwindow.setTitle("Update book");
+
+        Label titleLbl = new Label("Title:");
+        TextField titleField = new TextField ();
+        VBox titleVbox = new VBox();
+        titleVbox.getChildren().addAll(titleLbl, titleField);
+        titleVbox.setSpacing(10);
+
+        Label isbnLbl = new Label("ISBN:");
+        TextField isbnField = new TextField ();
+        VBox isbnVbox = new VBox();
+        isbnVbox.getChildren().addAll(isbnLbl, isbnField);
+        isbnVbox.setSpacing(10);
+
+        Label newTitleLbl = new Label("Title:");
+        TextField newTitleField = new TextField ();
+        VBox newTitleVbox = new VBox();
+        titleVbox.getChildren().addAll(newTitleLbl, newTitleField);
+        titleVbox.setSpacing(10);
+
+        Button updateBookBtn= new Button("Update book");
+
+        updateBookBtn.setOnAction(e -> {
+            controller.onUpdateBook(newTitleField.getText(),titleField.getText(), isbnField.getText());
+            popupwindow.close();
+        });
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(titleVbox,isbnVbox,newTitleVbox,updateBookBtn);
+        layout.setAlignment(Pos.CENTER);
+        Scene addBookScene= new Scene(layout, 600, 350);
+        popupwindow.setScene(addBookScene);
+        popupwindow.showAndWait();
+    }
+
     private void initMenus(Controller controller) {
 
         Menu fileMenu = new Menu("File");
@@ -356,6 +396,12 @@ public class BooksPane extends VBox {
             initRemoveBookPopup(controller); // save data?
         };
         removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
+
+        EventHandler<ActionEvent> updateBookHandler = actionEvent -> {
+            initUpdateBookPopup(controller); // save data?
+        };
+        updateItem.addEventHandler(ActionEvent.ACTION, updateBookHandler);
+
 
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu);

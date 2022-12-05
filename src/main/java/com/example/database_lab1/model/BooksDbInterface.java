@@ -42,6 +42,8 @@ public interface BooksDbInterface {
 
     Book addBook(String title, String isbn, java.sql.Date published, String authorName) throws BooksDbException;
 
+    void updateBook(String title,String isbn) throws BooksDbException;
+
     void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException;
 
     int getBookIdByTitleAndISBN(String title, String isbn)
