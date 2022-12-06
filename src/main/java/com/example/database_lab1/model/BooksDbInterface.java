@@ -45,7 +45,7 @@ public interface BooksDbInterface {
 
     void addGenreToBook(String title, String isbn, String genre) throws BooksDbException;
 
-    void updateBook(String title, String newTitle, String isbn) throws BooksDbException;
+    void updateTitleBook(String newTitle, int bookId) throws BooksDbException;
 
     void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException;
 
@@ -66,6 +66,8 @@ public interface BooksDbInterface {
     List<Book> getAllBooks() throws BooksDbException;
 
     List<Author> getAllAuthors() throws BooksDbException;
+
+    Book getBookById(int bookId) throws BooksDbException;
 
     // TODO: Add abstract methods for all inserts, deletes and queries 
     // mentioned in the instructions for the assignement.

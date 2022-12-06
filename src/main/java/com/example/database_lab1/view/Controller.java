@@ -57,17 +57,23 @@ public class Controller {
         }
     }
 
-    public void onUpdateBook(String title, String isbn,String newTitle){
+    public void onUpdateBook(int bookId, String newTitle, String newAuthor, String newGenre) {
         try {
-            if (title != null){
-                booksDb.connect(DB_NAME);
-                booksDb.updateBook(title,newTitle,isbn);
-            }else{
-                booksView.showAlertAndWait("Fill in all fields!",WARNING);
+            booksDb.connect(DB_NAME);
+            Book book =booksDb.getBookById(bookId);
+            if(!newTitle.equals("")) {
+                booksDb.updateTitleBook(newTitle,bookId);
             }
-        }catch (Exception e){
-            booksView.showAlertAndWait("Database error",ERROR);
-        }
+            if(!newAuthor.equals("")) {
+                booksDb.addAuthor(newAuthor);
+                booksDb.addAuthorToBook(book.getTitle(), book.getIsbn(), newAuthor);
+            }
+            if (newGenre != null) {
+                booksDb.addGenreToBook(book.getTitle(),book.getIsbn(), newGenre);
+            }
+        }catch(Exception e){
+                booksView.showAlertAndWait("Database error", ERROR);
+            }
     }
 
     protected void onSearchSelected(String searchFor, SearchMode mode) {

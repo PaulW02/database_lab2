@@ -338,68 +338,44 @@ public class BooksPane extends VBox {
         booksVbox.setSpacing(10);
         booksVbox.setAlignment(Pos.CENTER);
 
+        Label newTitleLbl = new Label("New Title:");
+        TextField newTitleField = new TextField();
+        VBox newTitleVbox = new VBox();
+        newTitleVbox.getChildren().addAll(newTitleLbl, newTitleField);
+        newTitleVbox.setSpacing(10);
+
+        Label authorLbl = new Label("Add Author");
+        TextField authorField = new TextField ();
+        VBox authorVbox = new VBox();
+        authorVbox.getChildren().addAll(authorLbl, authorField);
+        authorVbox.setSpacing(10);
+
+        Label genreLbl = new Label("Add Genre:");
+        genreComboBox = new ComboBox<>();
+        genreComboBox.getItems().addAll(Genre.values());
+        VBox genreVbox = new VBox();
+        genreVbox.getChildren().addAll(genreLbl, genreComboBox);
+        genreVbox.setSpacing(10);
+
         Button updateBookBtn= new Button("Update book");
-/*
+
+
         updateBookBtn.setOnAction(e -> {
-            controller.onUpdateBook(booksComboBox.getValue().getBookId());
+            controller.onUpdateBook(booksComboBox.getValue().getBookId(),newTitleField.getText(),authorField.getText(),genreComboBox.getValue() == null ? null:genreComboBox.getValue().toString());
             popupwindow.close();
         });
-*/
+
         VBox layout= new VBox(10);
 
-        layout.getChildren().addAll(booksVbox,updateBookBtn);
+        layout.getChildren().addAll(booksVbox,newTitleVbox,authorVbox,genreVbox,updateBookBtn);
         layout.setAlignment(Pos.CENTER);
         layout.setSpacing(40);
         Scene addBookScene= new Scene(layout, 600, 350);
         popupwindow.setScene(addBookScene);
         popupwindow.showAndWait();
 
-        /*Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Update book");
-
-        Label booksLbl = new Label("Choose a book to update:");
-        booksComboBox = new ComboBox<>();
-        booksComboBox.getItems().addAll(controller.getAllBooks());
-        VBox booksVbox = new VBox();
-        booksVbox.getChildren().addAll(booksLbl, booksComboBox);
-        booksVbox.setSpacing(10);
-        booksVbox.setAlignment(Pos.CENTER);
-
-        Label titleLbl = new Label("Title:");
-        TextField titleField = new TextField ();
-        VBox titleVbox = new VBox();
-        titleVbox.getChildren().addAll(titleLbl, titleField);
-        titleVbox.setSpacing(10);
-
-        Label isbnLbl = new Label("ISBN:");
-        TextField isbnField = new TextField ();
-        VBox isbnVbox = new VBox();
-        isbnVbox.getChildren().addAll(isbnLbl, isbnField);
-        isbnVbox.setSpacing(10);
-
-        Label newTitleLbl = new Label("New Title:");
-        TextField newTitleField = new TextField ();
-        VBox newTitleVbox = new VBox();
-        titleVbox.getChildren().addAll(newTitleLbl, newTitleField);
-        titleVbox.setSpacing(10);
-
-        Button updateBookBtn= new Button("Update book");
-
-        updateBookBtn.setOnAction(e -> {
-            controller.onUpdateBook(titleField.getText(), isbnField.getText(),newTitleField.getText());
-            popupwindow.close();
-        });
-
-        VBox layout= new VBox(10);
-
-        layout.getChildren().addAll(titleVbox,isbnVbox,newTitleVbox,updateBookBtn);
-        layout.setAlignment(Pos.CENTER);
-        Scene addBookScene= new Scene(layout, 600, 350);
-        popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();*/
     }
+
 
     private void initMenus(Controller controller) {
 
@@ -440,7 +416,11 @@ public class BooksPane extends VBox {
         removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
 
         EventHandler<ActionEvent> updateBookHandler = actionEvent -> {
-            initUpdateBookPopup(controller); // save data?
+            if (loggedIn) {
+                initUpdateBookPopup(controller); // save data?
+            }else{
+                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
+            }
         };
         updateItem.addEventHandler(ActionEvent.ACTION, updateBookHandler);
 

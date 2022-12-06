@@ -117,7 +117,8 @@ public class BooksDbImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             searchGenre = searchGenre.toLowerCase();
-            String sql = "SELECT * FROM book b, book_genre bg, genre g WHERE b.book_id = bg.book_id AND bg.genre_id = g.genre AND g.genre_name LIKE '%" + searchGenre + "%'";
+
+            String sql = "SELECT * FROM book b INNER JOIN book_genre bg ON b.book_id = bg.book_id INNER JOIN genre g ON bg.genre_id = g.genre_id WHERE g.genre_name LIKE '%"+searchGenre+"%'";
             Statement stmt = this.con.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -135,9 +136,10 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             List<Book> result = new ArrayList<>();
-            String sql = "SELECT * FROM book b, review r WHERE b.bookid = r.bookid AND stars LIKE '%" + searchStars + "%'";
-            Statement stmt = this.con.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
+            String sql = "SELECT * FROM book b, review r WHERE b.bookid = r.bookid AND stars = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, Integer.valueOf(searchStars));
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
@@ -148,18 +150,20 @@ public class BooksDbImpl implements BooksDbInterface {
         }
     }
     @Override
-    public void updateBook(String title, String newTitle, String isbn)
+    public void updateTitleBook(String newTitle, int bookId)
             throws BooksDbException{
         try{
-            String sql = "UPDATE book SET title = newTitle WHERE title = title AND isbn = isbn";
+            String sql = "UPDATE book SET title = ? WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1,title);
+            stmt.setString(1,newTitle);
+            stmt.setInt(2,bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
             System.out.println("");
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
     }
+
     @Override
     public Book addBook(String title, String isbn, Date published, String authorName, String genre)
             throws BooksDbException {
@@ -257,7 +261,8 @@ public class BooksDbImpl implements BooksDbInterface {
     public void addAuthor(String authorName)
             throws BooksDbException {
         try {
-            if (getAuthorByName(authorName).getAuthorId() == 0) {
+            if (!(authorName.equals(""))) {
+                System.out.println("test");
                 String sql = "INSERT INTO author (name) VALUES (?)";
                 PreparedStatement stmt = this.con.prepareStatement(sql);
                 stmt.setString(1, authorName);
@@ -282,6 +287,27 @@ public class BooksDbImpl implements BooksDbInterface {
                 name = rs.getString("name");
             }
             return new Author(authorId, name);
+        }catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+    @Override
+    public Book getBookById(int bookId) throws BooksDbException{
+        try {
+            String sql = "SELECT * FROM book WHERE book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            ResultSet rs = stmt.executeQuery();
+            String isbn = "";
+            String title = "";
+            Date published = null;
+            while (rs.next()){
+                bookId = rs.getInt("book_id");
+                isbn = rs.getString("isbn");
+                title = rs.getString("title");
+                published = rs.getDate("published");
+            }
+            return new Book(bookId,isbn,title,published);
         }catch (SQLException e) {
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         }
