@@ -8,4 +8,5 @@ module se.kth.anderslm.booksdb {
 
     requires java.sql;
     requires mysql.connector.j;
+    requires org.controlsfx.controls;
 }

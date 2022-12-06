@@ -59,7 +59,7 @@ public interface BooksDbInterface {
 
     List<Author> getAuthorsByBookId(int bookId) throws BooksDbException;
 
-    boolean loginUser(String username, String password) throws BooksDbException;
+    User loginUser(String username, String password) throws BooksDbException;
 
     boolean registerUser(String name, String username, String password) throws BooksDbException;
 
@@ -67,8 +67,12 @@ public interface BooksDbInterface {
 
     List<Author> getAllAuthors() throws BooksDbException;
 
+    void reviewBook(int bookId, int userId, double rating, String reviewText) throws BooksDbException;
+
+    List<Book> getBooksNotReviewed(int userId) throws BooksDbException;
+
     Book getBookById(int bookId) throws BooksDbException;
 
-    // TODO: Add abstract methods for all inserts, deletes and queries 
+    // TODO: Add abstract methods for all inserts, deletes and queries
     // mentioned in the instructions for the assignement.
 }
