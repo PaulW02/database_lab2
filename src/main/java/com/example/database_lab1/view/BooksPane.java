@@ -58,10 +58,10 @@ public class BooksPane extends VBox {
         booksInTable.clear();
         booksInTable.addAll(books);
     }
-    
+
     /**
      * Notify user on input error or exceptions.
-     * 
+     *
      * @param msg the message
      * @param type types: INFORMATION, WARNING et c.
      */
@@ -117,7 +117,7 @@ public class BooksPane extends VBox {
         titleCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
         authorsCol.prefWidthProperty().bind(booksTable.widthProperty().multiply(0.5));
 
-        // define how to fill data for each cell, 
+        // define how to fill data for each cell,
         // get values from Book properties
         titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
         isbnCol.setCellValueFactory(new PropertyValueFactory<>("isbn"));
@@ -135,7 +135,7 @@ public class BooksPane extends VBox {
         searchModeBox.getItems().addAll(SearchMode.values());
         searchModeBox.setValue(SearchMode.Title);
         searchButton = new Button("Search");
-        
+
         // event handling (dispatch to controller)
         searchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -427,7 +427,7 @@ public class BooksPane extends VBox {
         removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
 
         EventHandler<ActionEvent> updateBookHandler = actionEvent -> {
-            if (loggedIn) {
+            if (currentUser != null) {
                 initUpdateBookPopup(controller); // save data?
             }else{
                 showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
