@@ -180,7 +180,8 @@ public class BooksPane extends VBox {
         Button login= new Button("Login");
 
         login.setOnAction(e -> {
-            this.currentUser = controller.onLoginUser(usernameField.getText(), passwordField.getText());
+            controller.onLoginUser(usernameField.getText(), passwordField.getText());
+            System.out.println(currentUser);
             if (this.currentUser != null){
                 popupwindow.close();
                 this.usernameLbl.setText("Hello " + usernameField.getText());
@@ -493,5 +494,13 @@ public class BooksPane extends VBox {
         Scene addBookScene= new Scene(layout, 600, 350);
         popupwindow.setScene(addBookScene);
         popupwindow.showAndWait();
+    }
+
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    public void setCurrentUser(User currentUser) {
+        this.currentUser = currentUser;
     }
 }
