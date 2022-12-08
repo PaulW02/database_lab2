@@ -222,19 +222,31 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void updateTitleBook(String newTitle, int bookId)
-            throws BooksDbException{
+            throws BooksDbException, SQLException {
         try{
-            this.con.setAutoCommit(false);
+            con.setAutoCommit(false);
             String sql = "UPDATE book SET title = ? WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1,newTitle);
             stmt.setInt(2,bookId);
             stmt.executeUpdate();
             con.commit();
-            con.setAutoCommit(true);
         } catch (SQLException e) {
-            System.out.println("");
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }finally {
+            try {
+                assert this.con != null;
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the SQL statement", e);
+            }
         }
     }
 
@@ -289,9 +301,9 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param genre a string parameter with a chosen genre.
      * */
     @Override
-    public void addGenreToBook(String title, String isbn, String genre) throws BooksDbException {
+    public void addGenreToBook(String title, String isbn, String genre) throws BooksDbException, SQLException {
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql;
             PreparedStatement stmt;
             sql = "INSERT INTO book_genre (book_id, genre_id) VALUES (?,?)";
@@ -301,10 +313,22 @@ public class BooksDbImpl implements BooksDbInterface {
             stmt.setInt(1, bookId);
             stmt.setInt(2, genreId);
             stmt.executeUpdate();
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the SQL statement", e);
+            }
         }
     }
 
@@ -317,7 +341,7 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql = "SELECT genre_id FROM genre WHERE genre_name = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, genre);
@@ -326,13 +350,20 @@ public class BooksDbImpl implements BooksDbInterface {
             while (rs.next()){
                 genreId = rs.getInt("genre_id");
             }
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
             return genreId;
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
+                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -349,7 +380,7 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException {
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql;
             PreparedStatement stmt;
             sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
@@ -359,10 +390,22 @@ public class BooksDbImpl implements BooksDbInterface {
             stmt.setInt(1, bookId);
             stmt.setInt(2, authorId);
             stmt.executeUpdate();
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the SQL statement", e);
+            }
         }
     }
 
@@ -377,7 +420,7 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM book WHERE title = ? AND isbn = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, title);
@@ -387,13 +430,20 @@ public class BooksDbImpl implements BooksDbInterface {
             while (rs.next()){
                 bookId = rs.getInt("book_id");
             }
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
             return bookId;
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
+                con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -409,7 +459,7 @@ public class BooksDbImpl implements BooksDbInterface {
     public void addAuthor(String authorName)
             throws BooksDbException {
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             if (!(authorName.equals(""))) {
                 System.out.println("test");
                 String sql = "INSERT INTO author (name) VALUES (?)";
@@ -417,10 +467,22 @@ public class BooksDbImpl implements BooksDbInterface {
                 stmt.setString(1, authorName);
                 stmt.executeUpdate();
             }
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the SQL statement", e);
+            }
         }
     }
 
@@ -430,27 +492,34 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns an author with its id and name.
      * */
     @Override
-    public Author getAuthorByName(String authorName) throws BooksDbException{
+    public Author getAuthorByName(String authorName) throws BooksDbException {
         ResultSet rs = null;
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM author WHERE name = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, authorName);
             rs = stmt.executeQuery();
             int authorId = 0;
             String name = "";
-            while (rs.next()){
+            while (rs.next()) {
                 authorId = rs.getInt("author_id");
                 name = rs.getString("name");
             }
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
             return new Author(authorId, name);
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
+                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -467,7 +536,7 @@ public class BooksDbImpl implements BooksDbInterface {
     public Book getBookById(int bookId) throws BooksDbException{
         ResultSet rs = null;
         try {
-            con.setAutoCommit(false);
+            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM book WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
@@ -481,19 +550,27 @@ public class BooksDbImpl implements BooksDbInterface {
                 title = rs.getString("title");
                 published = rs.getDate("published");
             }
-            con.commit();
-            con.setAutoCommit(true);
+            this.con.commit();
             return new Book(bookId,isbn,title,published);
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
+                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
             }
         }
     }
+
 
     /**
      * This book returns a list of authors connected with a specific bookid.
@@ -519,9 +596,17 @@ public class BooksDbImpl implements BooksDbInterface {
             con.setAutoCommit(true);
             return result;
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
+                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -578,7 +663,20 @@ public class BooksDbImpl implements BooksDbInterface {
             con.commit();
             con.setAutoCommit(true);
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
         }
     }
 
@@ -596,7 +694,20 @@ public class BooksDbImpl implements BooksDbInterface {
             con.commit();
             con.setAutoCommit(true);
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
         }
     }
 
@@ -757,7 +868,20 @@ public class BooksDbImpl implements BooksDbInterface {
             this.con.rollback();
             this.con.setAutoCommit(true);
         } catch (SQLException e) {
+            if (this.con != null){
+                try {
+                    this.con.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
+                this.con.setAutoCommit(true);
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
         }
     }
 
