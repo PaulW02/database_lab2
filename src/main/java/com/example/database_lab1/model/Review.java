@@ -1,5 +1,7 @@
 package com.example.database_lab1.model;
 
+import org.controlsfx.control.Rating;
+
 import java.util.Date;
 
 public class Review {
@@ -13,14 +15,15 @@ public class Review {
 
     private String reviewText = "";
 
-    public Review(int bookId, int userId, int stars, Date reviewDate) {
+    public Review(int bookId, int userId, int stars, Date reviewDate, String reviewText) {
         this.bookId = bookId;
         this.userId = userId;
         this.stars = stars;
         this.reviewDate = reviewDate;
+        this.reviewText = reviewText;
     }
 
-    public Review(int stars, Date reviewDate) { this(-1,-1,stars,reviewDate);}
+    public Review(int stars, Date reviewDate, String reviewText) { this(-1,-1,stars,reviewDate, reviewText);}
 
     public int getBookId() {
         return bookId;
@@ -46,6 +49,6 @@ public class Review {
 
     @Override
     public String toString() {
-        return stars + ", " + reviewDate.toString();
+        return userId + ", " + reviewText + ", " + stars + ", " + reviewDate.toString();
     }
 }

@@ -38,22 +38,24 @@ public interface BooksDbInterface {
 
     List<Book> searchBooksByStars(String searchStars) throws BooksDbException;
 
+    List<Genre> getGenresByBookId(int bookId)
+            throws BooksDbException;
+
     boolean removeBook(int bookId) throws BooksDbException;
 
     Book addBook(String title, String isbn, Date published, String authorName, String genre)
             throws BooksDbException;
 
-    void addGenreToBook(String title, String isbn, String genre) throws BooksDbException, SQLException;
+    void addGenreToBook(String isbn, String genre) throws BooksDbException;
 
-    void updateTitleBook(String newTitle, int bookId) throws BooksDbException, SQLException;
+    void updateTitleBook(String newTitle, int bookId) throws BooksDbException;
 
-    void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException, SQLException;
+    void addAuthorToBook(String isbn, String authorName) throws BooksDbException, SQLException;
 
-    int getBookIdByTitleAndISBN(String title, String isbn)
+    int getBookIdByISBN(String isbn)
             throws BooksDbException;
 
-    void addAuthor(String authorName)
-            throws BooksDbException;
+    Author addAuthor(String authorName) throws BooksDbException;
 
     Author getAuthorByName(String authorName) throws BooksDbException;
 
@@ -72,6 +74,10 @@ public interface BooksDbInterface {
     List<Book> getBooksNotReviewed(int userId) throws BooksDbException;
 
     Book getBookById(int bookId) throws BooksDbException;
+
+    List<Review> getReviewsByBookId(int bookId) throws BooksDbException;
+
+    User getUserById(int userId) throws BooksDbException;
 
     // TODO: Add abstract methods for all inserts, deletes and queries
     // mentioned in the instructions for the assignement.

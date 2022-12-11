@@ -32,16 +32,22 @@ public class BooksPane extends VBox {
     private ComboBox<SearchMode> searchModeBox;
     private ComboBox<Genre> genreComboBox;
     private ComboBox<Book> booksComboBox;
-    private ComboBox<Author> authorsComboBox;
     private TextField searchField;
     private Button searchButton;
     private Button loginBtn = new Button();
     private Button signUpBtn = new Button();
-
     private Label usernameLbl = new Label();
     private MenuBar menuBar;
-
     private User currentUser = null;
+    private List<Book> books;
+    private List<Book> booksNotReviewed;
+    private Stage bookViewPopup;
+    private Stage initLoginPopupwindow;
+    private Stage initRegisterPopupWindow;
+    private Stage initAddBookPopup;
+    private Stage initRemoveBookPopup;
+    private Stage initUpdateBookPopup;
+    private Stage initReviewBookPopup;
 
     public BooksPane(BooksDbImpl booksDb) {
         final Controller controller = new Controller(booksDb, this);
@@ -76,6 +82,7 @@ public class BooksPane extends VBox {
         booksInTable = FXCollections.observableArrayList();
 
         // init views and event handlers
+        controller.getAllBooks();
         initBooksTable();
         initSearchView(controller);
         initUserView(controller);
@@ -104,6 +111,18 @@ public class BooksPane extends VBox {
 
     private void initBooksTable() {
         booksTable = new TableView<>();
+
+        booksTable.setRowFactory( tv -> {
+            TableRow<Book> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (! row.isEmpty()) ) {
+                    Book bookClicked = row.getItem();
+                    initBookView(bookClicked);
+                }
+            });
+            return row;
+        });
+
         booksTable.setEditable(false); // don't allow user updates (yet)
         booksTable.setPlaceholder(new Label("No rows to display"));
 
@@ -128,6 +147,73 @@ public class BooksPane extends VBox {
         booksTable.setItems(booksInTable);
     }
 
+    private void initBookView(Book book) {
+        if(bookViewPopup == null) {
+            bookViewPopup = new Stage();
+            bookViewPopup.initModality(Modality.APPLICATION_MODAL);
+            bookViewPopup.setTitle(book.getTitle());
+        }
+
+        Label titleLbl = new Label("Title: " + book.getTitle());
+        VBox titleVbox = new VBox();
+        titleVbox.getChildren().addAll(titleLbl);
+        titleVbox.setAlignment(Pos.CENTER);
+
+        Label isbnLbl = new Label("ISBN: " + book.getIsbn());
+        VBox isbnVbox = new VBox();
+        isbnVbox.getChildren().addAll(isbnLbl);
+        isbnVbox.setAlignment(Pos.CENTER);
+
+        Label publishedLbl = new Label("Published: " + book.getPublished());
+        VBox publishedVbox = new VBox();
+        publishedVbox.getChildren().addAll(publishedLbl);
+        publishedVbox.setAlignment(Pos.CENTER);
+
+        Label authorsLbl = new Label("Authors: ");
+        VBox authorsVbox = new VBox();
+        authorsVbox.getChildren().addAll(authorsLbl);
+        for (Author author: book.getAuthors()) {
+            authorsVbox.getChildren().addAll(new Label(author.getName()));
+        }
+        authorsVbox.setAlignment(Pos.CENTER);
+
+        Label genresLbl = new Label("Genres: ");
+        VBox genresVbox = new VBox();
+        genresVbox.getChildren().addAll(genresLbl);
+        for (Genre genre: book.getGenres()) {
+            genresVbox.getChildren().addAll(new Label(genre.name()));
+        }
+        genresVbox.setAlignment(Pos.CENTER);
+
+        Label reviewsLbl = new Label("Reviews: ");
+        VBox reviewsVbox = new VBox();
+        reviewsVbox.getChildren().addAll(reviewsLbl);
+        for (Review review: book.getReviews()) {
+            HBox reviewHbox = new HBox();
+            Label reviewerTextLbl = new Label(review.getReviewText());
+            Label reviewerDateLbl = new Label(review.getReviewDate().toString());
+            Rating reviewerRating = new Rating(5, review.getStars());
+            reviewerRating.setDisable(true);
+            reviewHbox.setSpacing(10);
+            reviewHbox.getChildren().addAll(reviewerTextLbl, reviewerRating, reviewerDateLbl);
+            reviewHbox.setAlignment(Pos.CENTER);
+            reviewsVbox.getChildren().addAll(reviewHbox);
+        }
+
+
+        reviewsVbox.setAlignment(Pos.CENTER);
+
+        VBox layout= new VBox(10);
+
+        layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorsVbox, genresVbox, reviewsVbox);
+        layout.setAlignment(Pos.CENTER);
+        layout.setSpacing(40);
+        Scene bookViewScene= new Scene(layout, 600, 600);
+        bookViewPopup.setScene(bookViewScene);
+        bookViewPopup.showAndWait();
+
+    }
+
     private void initSearchView(Controller controller) {
         searchField = new TextField();
         searchField.setPromptText("Search for...");
@@ -147,7 +233,7 @@ public class BooksPane extends VBox {
         });
     }
 
-    private void initUserView(Controller controller) {
+    public void initUserView(Controller controller) {
         loginBtn.setText("Login");
         signUpBtn.setText("Sign up");
 
@@ -160,10 +246,11 @@ public class BooksPane extends VBox {
         });
     }
     private void initLoginUserView(Controller controller) {
-        Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Login");
+        if(initLoginPopupwindow == null) {
+            initLoginPopupwindow = new Stage();
+            initLoginPopupwindow.initModality(Modality.APPLICATION_MODAL);
+            initLoginPopupwindow.setTitle("Login");
+        }
 
         Label usernameLbl = new Label("Username:");
         TextField usernameField = new TextField();
@@ -181,22 +268,6 @@ public class BooksPane extends VBox {
 
         login.setOnAction(e -> {
             controller.onLoginUser(usernameField.getText(), passwordField.getText());
-            System.out.println(currentUser);
-            if (this.currentUser != null){
-                popupwindow.close();
-                this.usernameLbl.setText("Hello " + usernameField.getText());
-                loginBtn.setText("Log out");
-                loginBtn.setOnAction(l -> {
-                    this.currentUser = null;
-                    this.usernameLbl.setText("");
-                    signUpBtn.setDisable(false);
-                    initUserView(controller);
-                });
-                signUpBtn.setDisable(true);
-
-            }else{
-                showAlertAndWait("Wrong username or password, try again", Alert.AlertType.WARNING);
-            }
         });
 
         VBox layout= new VBox(10);
@@ -204,14 +275,16 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(usernameVbox, passwordVbox, login);
         layout.setAlignment(Pos.CENTER);
         Scene loginScene= new Scene(layout, 500, 350);
-        popupwindow.setScene(loginScene);
-        popupwindow.showAndWait();
+        initLoginPopupwindow.setScene(loginScene);
+        initLoginPopupwindow.showAndWait();
     }
-    private void initRegisterUserView(Controller controller) {
-        Stage popupwindow=new Stage();
 
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Sign up");
+    private void initRegisterUserView(Controller controller) {
+        if(initRegisterPopupWindow == null) {
+            initRegisterPopupWindow = new Stage();
+            initRegisterPopupWindow.initModality(Modality.APPLICATION_MODAL);
+            initRegisterPopupWindow.setTitle("Sign up");
+        }
 
         Label nameLbl = new Label("Name:");
         TextField nameField = new TextField();
@@ -235,11 +308,7 @@ public class BooksPane extends VBox {
         Button register= new Button("Register");
 
         register.setOnAction(e -> {
-            if (controller.onRegisterUser(nameField.getText(), usernameField.getText(), passwordField.getText())){
-                popupwindow.close();
-            }else{
-                showAlertAndWait("User already exists, try another username", Alert.AlertType.WARNING);
-            }
+            controller.onRegisterUser(nameField.getText(), usernameField.getText(), passwordField.getText());
         });
 
         VBox layout= new VBox(10);
@@ -247,15 +316,16 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(nameVbox, usernameVbox, passwordVbox, register);
         layout.setAlignment(Pos.CENTER);
         Scene signupScene= new Scene(layout, 500, 350);
-        popupwindow.setScene(signupScene);
-        popupwindow.showAndWait();
+        initRegisterPopupWindow.setScene(signupScene);
+        initRegisterPopupWindow.showAndWait();
     }
 
     private void initAddBookPopup(Controller controller){
-        Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Add book");
+        if(initAddBookPopup == null) {
+            initAddBookPopup = new Stage();
+            initAddBookPopup.initModality(Modality.APPLICATION_MODAL);
+            initAddBookPopup.setTitle("Add book");
+        }
 
         Label titleLbl = new Label("Title:");
         TextField titleField = new TextField();
@@ -292,7 +362,7 @@ public class BooksPane extends VBox {
 
         addBookBtn.setOnAction(e -> {
             controller.onAddBook(titleField.getText(), isbnField.getText(), publishedField.getValue(), authorField.getText(), genreComboBox.getValue().toString());
-            popupwindow.close();
+            initAddBookPopup.close();
         });
 
         VBox layout= new VBox(10);
@@ -300,19 +370,20 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(titleVbox, isbnVbox, publishedVbox, authorVbox, genreVbox, addBookBtn);
         layout.setAlignment(Pos.CENTER);
         Scene addBookScene= new Scene(layout, 600, 350);
-        popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();
+        initAddBookPopup.setScene(addBookScene);
+        initAddBookPopup.showAndWait();
     }
 
     private void initRemoveBookPopup(Controller controller){
-        Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Remove book");
+        if (initRemoveBookPopup == null) {
+            initRemoveBookPopup = new Stage();
+            initRemoveBookPopup.initModality(Modality.APPLICATION_MODAL);
+            initRemoveBookPopup.setTitle("Remove book");
+        }
 
         Label booksLbl = new Label("Choose a book to delete:");
         booksComboBox = new ComboBox<>();
-        booksComboBox.getItems().addAll(controller.getAllBooks());
+        booksComboBox.getItems().addAll(books);
         VBox booksVbox = new VBox();
         booksVbox.getChildren().addAll(booksLbl, booksComboBox);
         booksVbox.setSpacing(10);
@@ -322,7 +393,7 @@ public class BooksPane extends VBox {
 
         removeBookBtn.setOnAction(e -> {
             controller.onRemoveBook(booksComboBox.getValue().getBookId());
-            popupwindow.close();
+            initRemoveBookPopup.close();
         });
 
         VBox layout= new VBox(10);
@@ -330,20 +401,21 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(booksVbox,removeBookBtn);
         layout.setAlignment(Pos.CENTER);
         layout.setSpacing(40);
-        Scene addBookScene= new Scene(layout, 600, 350);
-        popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();
+        Scene removeBookScene= new Scene(layout, 600, 350);
+        initRemoveBookPopup.setScene(removeBookScene);
+        initRemoveBookPopup.showAndWait();
     }
 
     private void initUpdateBookPopup(Controller controller){
-        Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Update book");
+        if (initUpdateBookPopup == null) {
+            initUpdateBookPopup = new Stage();
+            initUpdateBookPopup.initModality(Modality.APPLICATION_MODAL);
+            initUpdateBookPopup.setTitle("Update book");
+        }
 
         Label booksLbl = new Label("Choose a book to update:");
         booksComboBox = new ComboBox<>();
-        booksComboBox.getItems().addAll(controller.getAllBooks());
+        booksComboBox.getItems().addAll(books);
         VBox booksVbox = new VBox();
         booksVbox.getChildren().addAll(booksLbl, booksComboBox);
         booksVbox.setSpacing(10);
@@ -373,7 +445,7 @@ public class BooksPane extends VBox {
 
         updateBookBtn.setOnAction(e -> {
             controller.onUpdateBook(booksComboBox.getValue().getBookId(),newTitleField.getText(),authorField.getText(),genreComboBox.getValue() == null ? null:genreComboBox.getValue().toString());
-            popupwindow.close();
+            initUpdateBookPopup.close();
         });
 
         VBox layout= new VBox(10);
@@ -381,9 +453,9 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(booksVbox,newTitleVbox,authorVbox,genreVbox,updateBookBtn);
         layout.setAlignment(Pos.CENTER);
         layout.setSpacing(40);
-        Scene addBookScene= new Scene(layout, 600, 350);
-        popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();
+        Scene updateBookScene= new Scene(layout, 600, 350);
+        initUpdateBookPopup.setScene(updateBookScene);
+        initUpdateBookPopup.showAndWait();
 
     }
 
@@ -450,14 +522,15 @@ public class BooksPane extends VBox {
     }
 
     private void initReviewBookPopup(Controller controller) {
-        Stage popupwindow=new Stage();
-
-        popupwindow.initModality(Modality.APPLICATION_MODAL);
-        popupwindow.setTitle("Remove book");
+        if (initReviewBookPopup == null) {
+            initReviewBookPopup = new Stage();
+            initReviewBookPopup.initModality(Modality.APPLICATION_MODAL);
+            initReviewBookPopup.setTitle("Remove book");
+        }
 
         Label booksLbl = new Label("Choose a book to review:");
         ComboBox<Book> booksNotReviewedComboBox = new ComboBox<>();
-        booksNotReviewedComboBox.getItems().addAll(controller.getBooksNotReviewed(this.currentUser.getUserId()));
+        booksNotReviewedComboBox.getItems().addAll(booksNotReviewed);
         VBox booksVbox = new VBox();
         booksVbox.getChildren().addAll(booksLbl, booksNotReviewedComboBox);
         booksVbox.setSpacing(10);
@@ -483,7 +556,7 @@ public class BooksPane extends VBox {
 
         reviewBookBtn.setOnAction(e -> {
             controller.onReviewBook(booksNotReviewedComboBox.getValue().getBookId(), this.currentUser.getUserId(), reviewTextArea.getText(), rating.getRating());
-            popupwindow.close();
+            initReviewBookPopup.close();
         });
 
         VBox layout= new VBox(10);
@@ -491,9 +564,9 @@ public class BooksPane extends VBox {
         layout.getChildren().addAll(booksVbox, reviewTextVbox, ratingVbox, reviewBookBtn);
         layout.setAlignment(Pos.CENTER);
         layout.setSpacing(40);
-        Scene addBookScene= new Scene(layout, 600, 350);
-        popupwindow.setScene(addBookScene);
-        popupwindow.showAndWait();
+        Scene reviewBookScene = new Scene(layout, 600, 350);
+        initReviewBookPopup.setScene(reviewBookScene);
+        initReviewBookPopup.showAndWait();
     }
 
     public User getCurrentUser() {
@@ -502,5 +575,40 @@ public class BooksPane extends VBox {
 
     public void setCurrentUser(User currentUser) {
         this.currentUser = currentUser;
+    }
+
+    public List<Book> getBooks() {
+        return books;
+    }
+
+    public void setBooks(List<Book> books) {
+        this.books = books;
+    }
+
+    public List<Book> getBooksNotReviewed() {
+        return booksNotReviewed;
+    }
+
+    public void setBooksNotReviewed(List<Book> booksNotReviewed) {
+        this.booksNotReviewed = booksNotReviewed;
+    }
+
+    public Stage getInitLoginPopupwindow() {
+        return initLoginPopupwindow;
+    }
+
+    public Stage getInitRegisterPopupWindow() {
+        return initRegisterPopupWindow;
+    }
+    public Label getUsernameLbl() {
+        return usernameLbl;
+    }
+
+    public Button getLoginBtn() {
+        return loginBtn;
+    }
+
+    public Button getSignUpBtn() {
+        return signUpBtn;
     }
 }

@@ -18,6 +18,7 @@ public class Book {
 
     private List<Author> authors;
     private List<Genre> genres;
+    private List<Review> reviews;
     // TODO: 
     // Add authors, as a separate class(!), and corresponding methods, to your implementation
     // as well, i.e. "private ArrayList<Author> authors;"
@@ -29,6 +30,7 @@ public class Book {
         this.published = published;
         this.authors = new ArrayList<>();
         this.genres = new ArrayList<>();
+        this.reviews = new ArrayList<>();
     }
     
     public Book(String isbn, String title, Date published) {
@@ -61,8 +63,17 @@ public class Book {
         this.genres = genres;
     }
 
+    public List<Review> getReviews() {
+        return reviews;
+    }
+
+    public void setReviews(List<Review> reviews) {
+        this.reviews = reviews;
+    }
+
     @Override
     public String toString() {
         return title + ", " + isbn + ", " + published.toString();
     }
+
 }

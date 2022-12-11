@@ -2,10 +2,12 @@ package com.example.database_lab1.view;
 
 import com.example.database_lab1.model.*;
 import javafx.application.Platform;
+import javafx.scene.control.Alert;
 
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static javafx.scene.control.Alert.AlertType.*;
@@ -31,17 +33,25 @@ public class Controller {
     protected void onAddBook(String title, String isbn, LocalDate published, String authorName, String genre){
         new Thread(() -> {
             try {
-                if (title != null && isbn != null && published != null && authorName != null && genre != null) {
+                if (title != "" && isbn != "" && published != null && authorName != "" && genre != "") {
                     Date publishedDate = Date.valueOf(published);
                     booksDb.connect(DB_NAME);
-                    booksDb.addBook(title, isbn, publishedDate, authorName, genre);
+                    Book newBook = booksDb.addBook(title, isbn, publishedDate, authorName, genre);
+
+                    Platform.runLater(() -> {
+                        List<Book> books = booksView.getBooks();
+                        List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
+                        books.add(newBook);
+                        booksNotReviewed.add(newBook);
+                        booksView.setBooks(books);
+                        booksView.setBooksNotReviewed(booksNotReviewed);
+                    });
                     booksDb.disconnect();
                 } else {
-                    booksView.showAlertAndWait("Fill in all fields!", WARNING);
+                    Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
             } catch (Exception e) {
-                System.out.println(e);
-                booksView.showAlertAndWait("Database error.", ERROR);
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
         }).start();
     }
@@ -51,13 +61,32 @@ public class Controller {
             try {
                 if (bookId != 0) {
                     booksDb.connect(DB_NAME);
+                    Book deletedBook = booksDb.getBookById(bookId);
                     booksDb.removeBook(bookId);
+                    Platform.runLater(() -> {
+                        List<Book> books = booksView.getBooks();
+                        List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
+                        for (Book book: books) {
+                            if (book.getBookId() == deletedBook.getBookId()){
+                                books.remove(books.indexOf(book));
+                                break;
+                            }
+                        }
+                        for (Book b: booksNotReviewed) {
+                            if (b.getBookId() == deletedBook.getBookId()){
+                                booksNotReviewed.remove(booksNotReviewed.indexOf(b));
+                                break;
+                            }
+                        }
+                        booksView.setBooks(books);
+                        booksView.setBooksNotReviewed(booksNotReviewed);
+                    });
                     booksDb.disconnect();
                 } else {
-                    booksView.showAlertAndWait("Fill in all fields!", WARNING);
+                    Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
             } catch (Exception e) {
-                booksView.showAlertAndWait("Database error", ERROR);
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
         }).start();
     }
@@ -66,20 +95,41 @@ public class Controller {
         new Thread(() -> {
             try {
                 booksDb.connect(DB_NAME);
-                Book book = booksDb.getBookById(bookId);
-                if (!newTitle.equals("")) {
+                Book bookToBeUpdated = booksDb.getBookById(bookId);
+                if (newTitle.length() > 1) {
                     booksDb.updateTitleBook(newTitle, bookId);
                 }
-                if (!newAuthor.equals("")) {
+                if (newAuthor.length() > 1) {
                     booksDb.addAuthor(newAuthor);
-                    booksDb.addAuthorToBook(book.getTitle(), book.getIsbn(), newAuthor);
+                    booksDb.addAuthorToBook(bookToBeUpdated.getIsbn(), newAuthor);
                 }
                 if (newGenre != null) {
-                    booksDb.addGenreToBook(book.getTitle(), book.getIsbn(), newGenre);
+                    booksDb.addGenreToBook(bookToBeUpdated.getIsbn(), newGenre);
                 }
+                System.out.println("Test1");
+                Book updatedBook = booksDb.getBookById(bookId);
+                System.out.println("Test2");
+                Platform.runLater(() -> {
+                    List<Book> books = booksView.getBooks();
+                    List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
+                    for (Book b: books) {
+                        if (b.getBookId() == updatedBook.getBookId()){
+                            books.set(books.indexOf(b), updatedBook);
+                            break;
+                        }
+                    }
+                    for (Book b: booksNotReviewed) {
+                        if (b.getBookId() == updatedBook.getBookId()){
+                            booksNotReviewed.set(booksNotReviewed.indexOf(b), updatedBook);
+                            break;
+                        }
+                    }
+                    booksView.setBooks(books);
+                    booksView.setBooksNotReviewed(booksNotReviewed);
+                });
                 booksDb.disconnect();
             } catch (Exception e) {
-                booksView.showAlertAndWait("Database error", ERROR);
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
         }).start();
     }
@@ -88,16 +138,12 @@ public class Controller {
        new Thread() {
             {
                 try {
-                    System.out.println(searchFor);
-                    if (searchFor != null && searchFor.length() > 1) {
+                    if (searchFor != null && searchFor.length() > 0) {
                         booksDb.connect(DB_NAME);
-                        List<Book> result = null;
-                        System.out.println(searchFor);
+                        List<Book> result = new ArrayList<>();
                         switch (mode) {
                             case Title:
-                                System.out.println(searchFor);
                                 result = booksDb.searchBooksByTitle(searchFor);
-                                System.out.println(result);
                                 break;
                             case ISBN:
                                 result = booksDb.searchBooksByISBN(searchFor);
@@ -110,124 +156,155 @@ public class Controller {
                                 break;
                             case Stars:
                                 result = booksDb.searchBooksByStars(searchFor);
-                            default:
-                                result = new ArrayList<>();
                         }
                         if (result == null || result.isEmpty()) {
-                            booksView.showAlertAndWait(
-                                    "No results found.", INFORMATION);
+                            Platform.runLater(() -> booksView.showAlertAndWait("No results found.", INFORMATION));
                         } else {
                             for (Book book : result) {
                                 book.setAuthors(booksDb.getAuthorsByBookId(book.getBookId()));
+                                book.setGenres(booksDb.getGenresByBookId(book.getBookId()));
+                                book.setReviews(booksDb.getReviewsByBookId(book.getBookId()));
                             }
-                            booksView.displayBooks(result);
+                            final List<Book> books = result;
+                            Platform.runLater(() -> booksView.displayBooks(books));
+
                         }
                         booksDb.disconnect();
                     } else {
-                        booksView.showAlertAndWait(
-                                "Enter a search string!", WARNING);
+                        Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                     }
                 } catch (Exception e) {
-                    booksView.showAlertAndWait("Database error.", ERROR);
+                    Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
                 }
-                Platform.runLater(
-                        () -> {
-                            System.out.println("TESSTT");
-                        });
             }
         }.start();
     }
 
     protected void onLoginUser(String username, String password) {
-        new Thread() {
-            {
-                try {
-                    if (username != "" && password != "") {
-                        booksDb.connect(DB_NAME);
+        new Thread(() -> {
+            try {
+                if (username != "" && password != "") {
+                    booksDb.connect(DB_NAME);
+                    final User user = booksDb.loginUser(username, password);
+                    javafx.application.Platform.runLater(() -> {
+                        this.booksView.setCurrentUser(user);
+                        if (this.booksView.getCurrentUser() != null){
+                            this.booksView.getInitLoginPopupwindow().close();
+                            this.booksView.getUsernameLbl().setText("Hello " + user.getUsername());
+                            this.booksView.getLoginBtn().setText("Log out");
+                            this.booksView.getLoginBtn().setOnAction(l -> {
+                                this.booksView.setCurrentUser(null);
+                                this.booksView.getUsernameLbl().setText("");
+                                this.booksView.getSignUpBtn().setDisable(false);
+                                booksView.initUserView(this);
+                            });
+                            this.booksView.getSignUpBtn().setDisable(true);
+                            getBooksNotReviewed(user.getUserId());
+                        }else{
+                            booksView.showAlertAndWait("The password is wrong!", Alert.AlertType.WARNING);
+                        }
+                    });
+                    booksDb.disconnect();
+                }else {
+                    Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
+                }
+                booksDb.disconnect();
+            } catch (Exception e) {
+                Platform.runLater(() -> booksView.showAlertAndWait("This username does not exist!", ERROR));
+            }
+        }).start();
+    }
+
+    protected void onRegisterUser(String name, String username, String password) {
+        new Thread(() -> {
+            try {
+                if (name != "" && username != "" && password != "") {
+                    booksDb.connect(DB_NAME);
+                    if (booksDb.registerUser(name, username, password)) {
                         final User user = booksDb.loginUser(username, password);
-                        booksDb.disconnect();
-                        System.out.println(user);
-                        booksView.setCurrentUser(user);
-                        Platform.runLater(
-                                () -> {
-                                    try {
-                                        this.join();
-                                        System.out.println(this.getId());
-                                    } catch (InterruptedException e) {
-                                        throw new RuntimeException(e);
-                                    }
+                        javafx.application.Platform.runLater(() -> {
+                            this.booksView.setCurrentUser(user);
+                            if (this.booksView.getCurrentUser() != null){
+                                this.booksView.getInitRegisterPopupWindow().close();
+                                this.booksView.getUsernameLbl().setText("Hello " + user.getUsername());
+                                this.booksView.getLoginBtn().setText("Log out");
+                                this.booksView.getLoginBtn().setOnAction(l -> {
+                                    this.booksView.setCurrentUser(null);
+                                    this.booksView.getUsernameLbl().setText("");
+                                    this.booksView.getSignUpBtn().setDisable(false);
+                                    booksView.initUserView(this);
                                 });
-                    } else {
-                        booksView.showAlertAndWait("Fill in all fields!", WARNING);
+                                this.booksView.getSignUpBtn().setDisable(true);
+                                getBooksNotReviewed(user.getUserId());
+                            }else{
+                                booksView.showAlertAndWait("The username or password is wrong!", Alert.AlertType.WARNING);
+                            }
+                        });
                     }
                     booksDb.disconnect();
-                } catch (Exception e) {
-                    booksView.showAlertAndWait("Database error.", ERROR);
+                } else {
+                    Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
+            } catch (Exception e) {
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
-        }.start();
+        }).start();
     }
 
-    protected boolean onRegisterUser(String name, String username, String password) {
-        try{
-            if (name != null && username != null && password != null){
+    protected void getAllBooks() {
+        new Thread(() -> {
+            try {
                 booksDb.connect(DB_NAME);
-                if (booksDb.registerUser(name, username, password)){
-                    booksDb.disconnect();
-                    return true;
-                }else{
-                    booksDb.disconnect();
-                    return false;
-                }
-            }else{
+                final List<Book> books = booksDb.getAllBooks();
+                javafx.application.Platform.runLater(() -> booksView.setBooks(books));
                 booksDb.disconnect();
-                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+            } catch (Exception e) {
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
-        } catch (Exception e) {
-            booksView.showAlertAndWait("Database error.",ERROR);
-        }
-        return false;
-    }
-
-    protected List<Book> getAllBooks() {
-        try{
-            List<Book> books = new ArrayList<>();
-            booksDb.connect(DB_NAME);
-            books = booksDb.getAllBooks();
-            booksDb.disconnect();
-            return books;
-        } catch (Exception e) {
-            booksView.showAlertAndWait("Database error.",ERROR);
-        }
-        return new ArrayList<>();
+        }).start();
     }
 
     protected void onReviewBook(int bookId, int userId, String reviewText, double rating) {
-        try{
-            if (bookId != 0 && userId != 0 && reviewText != "" && rating != 0){
-                booksDb.connect(DB_NAME);
-                booksDb.reviewBook(bookId, userId, rating, reviewText);
-                booksDb.disconnect();
-            }else{
-                booksView.showAlertAndWait("Fill in all fields!", WARNING);
+        new Thread(() -> {
+            try {
+                if (bookId != 0 && userId != 0 && reviewText != "" && rating != 0) {
+                    booksDb.connect(DB_NAME);
+                    Book reviewedBook = booksDb.getBookById(bookId);
+                    booksDb.reviewBook(bookId, userId, rating, reviewText);
+                    Platform.runLater(() -> {
+                        List<Book> books = booksView.getBooksNotReviewed();
+                        Iterator<Book> bookIterator = books.iterator();
+                        while (bookIterator.hasNext()){
+                            Book book = bookIterator.next();
+                            if (book.getBookId() == reviewedBook.getBookId()){
+                                books.remove(books.indexOf(book));
+                                break;
+                            }
+                        }
+                        booksView.setBooksNotReviewed(books);
+                    });
+                    booksDb.disconnect();
+                } else {
+                    Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
+                }
+            } catch (Exception e) {
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
-        } catch (Exception e) {
-            booksView.showAlertAndWait("Database error.",ERROR);
-        }
+        }).start();
     }
 
-    protected List<Book> getBooksNotReviewed(int userId) {
-        try{
-            booksDb.connect(DB_NAME);
-            List<Book> books = booksDb.getBooksNotReviewed(userId);
-            booksDb.disconnect();
-            return books;
-        } catch (Exception e) {
-            booksView.showAlertAndWait("Database error.",ERROR);
-        }
-        return new ArrayList<>();
+    protected void getBooksNotReviewed(int userId) {
+        new Thread(() -> {
+            try {
+                booksDb.connect(DB_NAME);
+                final List<Book> books = booksDb.getBooksNotReviewed(userId);
+                Platform.runLater(() -> booksView.setBooksNotReviewed(books));
+                booksDb.disconnect();
+            } catch (Exception e) {
+                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
+            }
+        }).start();
     }
-
 
     // TODO:
     // Add methods for all types of user interaction (e.g. via  menus).

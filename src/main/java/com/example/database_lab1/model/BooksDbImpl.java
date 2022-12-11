@@ -10,7 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -22,17 +21,15 @@ import java.util.List;
  * @author anderslm@kth.se
  */
 public class BooksDbImpl implements BooksDbInterface {
-
-    public static final String DB_NAME = "booksdb";
     private Connection con;
-    private final List<Book> books;
 
-    public BooksDbImpl() {
-        books = Arrays.asList(DATA);
-    }
+    public BooksDbImpl() {}
 
     @Override
     public boolean connect(String database) throws BooksDbException {
+        if(database == null) {
+            throw new RuntimeException("Database provided is null. Please specify a database name.");
+        }
         String server = "jdbc:mysql://localhost:3306/" + database+ "?UseClientEnc=UTF8";
         this.con = null;
         try {
@@ -99,7 +96,7 @@ public class BooksDbImpl implements BooksDbInterface {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
-            String sql = "SELECT * FROM book WHERE ISBN LIKE ?";
+            String sql = "SELECT * FROM book WHERE isbn LIKE ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, "%"+searchISBN+"%");
             rs = stmt.executeQuery();
@@ -131,11 +128,10 @@ public class BooksDbImpl implements BooksDbInterface {
         try{
             List<Book> result = new ArrayList<>();
             searchAuthor = searchAuthor.toLowerCase();
-            String sql = "SELECT * FROM book b INNER JOIN book_author ba ON b.book_id = ba.book_id INNER JOIN author a ON ba.author_id = a.author_id WHERE a.name LIKE ?";
+            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b INNER JOIN book_author ba ON b.book_id = ba.book_id INNER JOIN author a ON ba.author_id = a.author_id WHERE a.name LIKE ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, "%"+searchAuthor+"%");
             rs = stmt.executeQuery();
-            rs = stmt.executeQuery(sql);
 
             while (rs.next()){
                 result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
@@ -164,10 +160,10 @@ public class BooksDbImpl implements BooksDbInterface {
         try {
             List<Book> result = new ArrayList<>();
             searchGenre = searchGenre.toLowerCase();
-
-            String sql = "SELECT * FROM book b INNER JOIN book_genre bg ON b.book_id = bg.book_id INNER JOIN genre g ON bg.genre_id = g.genre_id WHERE g.genre_name LIKE '%"+searchGenre+"%'";
-            Statement stmt = this.con.createStatement();
-            rs = stmt.executeQuery(sql);
+            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b INNER JOIN book_genre bg ON b.book_id = bg.book_id INNER JOIN genre g ON bg.genre_id = g.genre_id WHERE g.genre_name LIKE ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setString(1, "%"+searchGenre+"%");
+            rs = stmt.executeQuery();
 
             while (rs.next()) {
                 result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
@@ -195,7 +191,7 @@ public class BooksDbImpl implements BooksDbInterface {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
-            String sql = "SELECT * FROM book b, review r WHERE b.bookid = r.bookid AND stars = ?";
+            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b, review r WHERE b.book_id = r.book_id AND r.stars = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, Integer.valueOf(searchStars));
             rs = stmt.executeQuery();
@@ -222,31 +218,15 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void updateTitleBook(String newTitle, int bookId)
-            throws BooksDbException, SQLException {
+            throws BooksDbException{
         try{
-            con.setAutoCommit(false);
             String sql = "UPDATE book SET title = ? WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1,newTitle);
-            stmt.setInt(2,bookId);
+            stmt.setInt(2, bookId);
             stmt.executeUpdate();
-            con.commit();
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                assert this.con != null;
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
         }
     }
 
@@ -264,17 +244,20 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         try {
             this.con.setAutoCommit(false);
-            String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, title);
-            stmt.setString(2, isbn);
-            stmt.setDate(3, published);
-            stmt.executeUpdate();
-            addAuthor(authorName);
-            addAuthorToBook(title, isbn, authorName);
-            addGenreToBook(title, isbn, genre);
-            int bookId = getBookIdByTitleAndISBN(title, isbn);
-            this.con.commit();
+            int bookId = getBookIdByISBN(isbn);
+            if (bookId == 0) {
+                String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
+                PreparedStatement stmt = this.con.prepareStatement(sql);
+                stmt.setString(1, title);
+                stmt.setString(2, isbn);
+                stmt.setDate(3, published);
+                stmt.executeUpdate();
+                addAuthor(authorName);
+                addAuthorToBook(isbn, authorName);
+                addGenreToBook(isbn, genre);
+                bookId = getBookIdByISBN(isbn);
+                this.con.commit();
+            }
             return new Book(bookId, title, isbn, published);
         } catch (SQLException e) {
             if (this.con != null){
@@ -296,39 +279,29 @@ public class BooksDbImpl implements BooksDbInterface {
 
     /**
      * This method adds a chosen genre to a book.
-     * @param title a string parameter with a given title.
      * @param isbn a string parameter with a given isbn.
      * @param genre a string parameter with a chosen genre.
      * */
     @Override
-    public void addGenreToBook(String title, String isbn, String genre) throws BooksDbException, SQLException {
+    public void addGenreToBook(String isbn, String genre) throws BooksDbException {
         try {
-            this.con.setAutoCommit(false);
-            String sql;
+            String sql = "SELECT * FROM book_genre WHERE book_id = ? and genre_id = ?";
             PreparedStatement stmt;
-            sql = "INSERT INTO book_genre (book_id, genre_id) VALUES (?,?)";
             stmt = this.con.prepareStatement(sql);
-            int bookId = getBookIdByTitleAndISBN(title, isbn);
+            int bookId = getBookIdByISBN(isbn);
             int genreId = getGenreIdByGenreName(genre);
             stmt.setInt(1, bookId);
             stmt.setInt(2, genreId);
-            stmt.executeUpdate();
-            this.con.commit();
+            ResultSet rs = stmt.executeQuery();
+            if (!rs.next()) {
+                sql = "INSERT INTO book_genre (book_id, genre_id) VALUES (?,?)";
+                stmt = this.con.prepareStatement(sql);
+                stmt.setInt(1, bookId);
+                stmt.setInt(2, genreId);
+                stmt.executeUpdate();
+            }
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
         }
     }
 
@@ -341,7 +314,6 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            this.con.setAutoCommit(false);
             String sql = "SELECT genre_id FROM genre WHERE genre_name = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, genre);
@@ -350,20 +322,11 @@ public class BooksDbImpl implements BooksDbInterface {
             while (rs.next()){
                 genreId = rs.getInt("genre_id");
             }
-            this.con.commit();
             return genreId;
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
-                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -373,77 +336,55 @@ public class BooksDbImpl implements BooksDbInterface {
 
     /**
      * This method adds an author to a specific book.
-     * @param title a string parameter with a given title.
      * @param isbn a string parameter with a given isbn.
      * @param authorName a string parameter with a given name.
      * */
     @Override
-    public void addAuthorToBook(String title, String isbn, String authorName) throws BooksDbException {
+    public void addAuthorToBook(String isbn, String authorName) throws BooksDbException {
         try {
-            this.con.setAutoCommit(false);
-            String sql;
+            String sql = "SELECT * FROM book_author WHERE book_id = ? and author_id = ?";
             PreparedStatement stmt;
-            sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
             stmt = this.con.prepareStatement(sql);
-            int bookId = getBookIdByTitleAndISBN(title, isbn);
+            int bookId = getBookIdByISBN(isbn);
             int authorId = getAuthorByName(authorName).getAuthorId();
             stmt.setInt(1, bookId);
             stmt.setInt(2, authorId);
-            stmt.executeUpdate();
-            this.con.commit();
+            ResultSet rs = stmt.executeQuery();
+            if (!rs.next()) {
+                sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
+                stmt = this.con.prepareStatement(sql);
+                stmt.setInt(1, bookId);
+                stmt.setInt(2, authorId);
+                stmt.executeUpdate();
+            }
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
         }
     }
 
     /**
-     * this method gets an id for a book with help from the title and isbn.
-     * @param title a string parameter with a given title.
+     * this method gets an id for a book with help from the isbn.
      * @param isbn a string parameter with a given isbn.
      * @return returns an int with the id of a specific book.
      * */
     @Override
-    public int getBookIdByTitleAndISBN(String title, String isbn)
+    public int getBookIdByISBN(String isbn)
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            this.con.setAutoCommit(false);
-            String sql = "SELECT * FROM book WHERE title = ? AND isbn = ?";
+            String sql = "SELECT book_id FROM book WHERE isbn = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, title);
-            stmt.setString(2, isbn);
+            stmt.setString(1, isbn);
             rs = stmt.executeQuery();
             int bookId = 0;
             while (rs.next()){
                 bookId = rs.getInt("book_id");
             }
-            this.con.commit();
             return bookId;
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
-                con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -453,36 +394,23 @@ public class BooksDbImpl implements BooksDbInterface {
 
     /**
      * this method adds an author to the database.
+     *
      * @param authorName a string parameter with a given name.
-     * */
+     * @return the newly created author or if
+     */
     @Override
-    public void addAuthor(String authorName)
+    public Author addAuthor(String authorName)
             throws BooksDbException {
         try {
-            this.con.setAutoCommit(false);
-            if (!(authorName.equals(""))) {
-                System.out.println("test");
+            if (getAuthorByName(authorName).getAuthorId() == 0) {
                 String sql = "INSERT INTO author (name) VALUES (?)";
                 PreparedStatement stmt = this.con.prepareStatement(sql);
                 stmt.setString(1, authorName);
                 stmt.executeUpdate();
             }
-            this.con.commit();
+            return getAuthorByName(authorName);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
+            throw new BooksDbException("This author already exists", e);
         }
     }
 
@@ -492,34 +420,24 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns an author with its id and name.
      * */
     @Override
-    public Author getAuthorByName(String authorName) throws BooksDbException {
+    public Author getAuthorByName(String authorName) throws BooksDbException{
         ResultSet rs = null;
         try {
-            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM author WHERE name = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, authorName);
             rs = stmt.executeQuery();
             int authorId = 0;
             String name = "";
-            while (rs.next()) {
+            while (rs.next()){
                 authorId = rs.getInt("author_id");
                 name = rs.getString("name");
             }
-            this.con.commit();
             return new Author(authorId, name);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
-                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -536,7 +454,6 @@ public class BooksDbImpl implements BooksDbInterface {
     public Book getBookById(int bookId) throws BooksDbException{
         ResultSet rs = null;
         try {
-            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM book WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
@@ -550,27 +467,17 @@ public class BooksDbImpl implements BooksDbInterface {
                 title = rs.getString("title");
                 published = rs.getDate("published");
             }
-            this.con.commit();
             return new Book(bookId,isbn,title,published);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
-                this.con.setAutoCommit(true);
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
             }
         }
     }
-
 
     /**
      * This book returns a list of authors connected with a specific bookid.
@@ -582,7 +489,6 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            con.setAutoCommit(false);
             List<Author> result = new ArrayList<>();
             String sql = "SELECT a.author_id, a.name FROM book b, author a, book_author ba WHERE b.book_id = ba.book_id AND ba.author_id = a.author_id AND b.book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
@@ -592,21 +498,71 @@ public class BooksDbImpl implements BooksDbInterface {
             while (rs.next()) {
                 result.add(new Author(rs.getInt("author_id"), rs.getString("name")));
             }
-            con.commit();
-            con.setAutoCommit(true);
             return result;
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
         } finally {
             try {
-                this.con.setAutoCommit(true);
+                rs.close();
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
+        }
+    }
+
+    /**
+     * This book returns a list of genres connected with a specific bookid.
+     * @param bookId an int with an id for a book.
+     * @return a list of genres with the given bookid.
+     * */
+    @Override
+    public List<Genre> getGenresByBookId(int bookId) throws BooksDbException {
+        ResultSet rs = null;
+        try {
+            List<Genre> result = new ArrayList<>();
+            String sql = "SELECT g.genre_name FROM book b, genre g, book_genre bg WHERE b.book_id = bg.book_id AND bg.genre_id = g.genre_id AND b.book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                result.add(Genre.valueOf(rs.getString("genre_name")));
+            }
+            return result;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
+        }
+    }
+
+    /**
+     * @param bookId an int with an id for a book.
+     * @return a list of all the reviews on the book with the specified bookId
+     */
+    @Override
+    public List<Review> getReviewsByBookId(int bookId)
+            throws BooksDbException {
+        ResultSet rs = null;
+        try {
+            List<Review> result = new ArrayList<>();
+            String sql = "SELECT * FROM review WHERE book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                result.add(new Review(rs.getInt("book_id"), rs.getInt("user_id"), rs.getInt("stars"), rs.getDate("review_date"), rs.getString("review_text")));
+            }
+            return result;
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
                 rs.close();
             } catch (SQLException e) {
                 throw new BooksDbException("There is something wrong with the connection", e);
@@ -625,6 +581,7 @@ public class BooksDbImpl implements BooksDbInterface {
             con.setAutoCommit(false);
             removeBookFromAuthor(bookId);
             removeBookFromGenre(bookId);
+            removeBookReviews(bookId);
             String sql = "DELETE FROM book WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
@@ -650,33 +607,32 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     /**
+     * @param bookId an int with an id for a book.
+     * Removes all reviews on the specified book.
+     */
+    private void removeBookReviews(int bookId) throws BooksDbException{
+        try {
+            String sql = "DELETE FROM review WHERE book_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, bookId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        }
+    }
+
+    /**
      * This method removes a book from an author.
      * @param bookId an int with an id for a book.
      * */
     private void removeBookFromAuthor(int bookId) throws BooksDbException{
         try {
-            this.con.setAutoCommit(false);
             String sql = "DELETE FROM book_author WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
             stmt.executeUpdate();
-            con.commit();
-            con.setAutoCommit(true);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
         }
     }
 
@@ -686,28 +642,12 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     private void removeBookFromGenre(int bookId) throws BooksDbException{
         try {
-            this.con.setAutoCommit(false);
             String sql = "DELETE FROM book_genre WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
             stmt.executeUpdate();
-            con.commit();
-            con.setAutoCommit(true);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
         }
     }
 
@@ -756,7 +696,6 @@ public class BooksDbImpl implements BooksDbInterface {
             throws BooksDbException {
         ResultSet rs = null;
         try {
-            this.con.setAutoCommit(false);
             String sql = "SELECT * FROM user WHERE username = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setString(1, username);
@@ -768,27 +707,12 @@ public class BooksDbImpl implements BooksDbInterface {
                 stmt.setString(2, username);
                 stmt.setString(3, encryptPassword(password));
                 stmt.executeUpdate();
-                this.con.commit();
                 return true;
             }else{
                 return false;
             }
         } catch (SQLException e) {
-            if (con != null){
-                try {
-                    con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                con.setAutoCommit(true);
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
         }
     }
 
@@ -856,7 +780,6 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public void reviewBook(int bookId, int userId, double rating, String reviewText) throws BooksDbException {
         try {
-            this.con.setAutoCommit(false);
             String sql = "INSERT INTO review (book_id, user_id, stars, review_text, review_date) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
@@ -865,23 +788,8 @@ public class BooksDbImpl implements BooksDbInterface {
             stmt.setString(4, reviewText);
             stmt.setDate(5, Date.valueOf(LocalDate.now()));
             stmt.executeUpdate();
-            this.con.rollback();
-            this.con.setAutoCommit(true);
         } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
             throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
         }
     }
 
@@ -915,6 +823,39 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     /**
+     * This method returns a user by their id.
+     * @param userId an int parameter with a user id.
+     * @return returns a user.
+     * */
+    @Override
+    public User getUserById(int userId) throws BooksDbException{
+        ResultSet rs = null;
+        try {
+            String sql = "SELECT * FROM user WHERE user_id = ?";
+            PreparedStatement stmt = this.con.prepareStatement(sql);
+            stmt.setInt(1, userId);
+            rs = stmt.executeQuery();
+            String name = "";
+            String username = "";
+            String password = "";
+            while (rs.next()){
+                name = rs.getString("name");
+                username = rs.getString("username");
+                password = rs.getString("password");
+            }
+            return new User(userId, name, username, password);
+        } catch (SQLException e) {
+            throw new BooksDbException("There is something wrong with the SQL statement", e);
+        } finally {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                throw new BooksDbException("There is something wrong with the connection", e);
+            }
+        }
+    }
+
+    /**
      * This method takes a string parameter with a password and returns it encrypted.
      * @return returns a string of an encrypted password.
      * */
@@ -922,46 +863,20 @@ public class BooksDbImpl implements BooksDbInterface {
         String encryptedpassword = null;
         try
         {
-            /* MessageDigest instance for MD5. */
             MessageDigest m = MessageDigest.getInstance("MD5");
-
-            /* Add plain-text password bytes to digest using MD5 update() method. */
             m.update(password.getBytes());
-
-            /* Convert the hash value into bytes */
             byte[] bytes = m.digest();
-
-            /* The bytes array has bytes in decimal form. Converting it into hexadecimal format. */
             StringBuilder s = new StringBuilder();
-            for(int i=0; i< bytes.length ;i++)
+            for(int i=0; i< bytes.length; i++)
             {
                 s.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
             }
-
-            /* Complete hashed password in hexadecimal format */
             encryptedpassword = s.toString();
         }
         catch (NoSuchAlgorithmException e)
         {
             e.printStackTrace();
         }
-
-        /* Display the unencrypted and encrypted passwords. */
-        System.out.println("Plain-text password: " + password);
-        System.out.println("Encrypted password using MD5: " + encryptedpassword);
         return encryptedpassword;
     }
-
-
-    private static final Book[] DATA = {
-            new Book(1, "123456789", "Databases Illuminated", new Date(2018, 1, 1)),
-            new Book(2, "234567891", "Dark Databases", new Date(1990, 1, 1)),
-            new Book(3, "456789012", "The buried giant", new Date(2000, 1, 1)),
-            new Book(4, "567890123", "Never let me go", new Date(2000, 1, 1)),
-            new Book(5, "678901234", "The remains of the day", new Date(2000, 1, 1)),
-            new Book(6, "234567890", "Alias Grace", new Date(2000, 1, 1)),
-            new Book(7, "345678911", "The handmaids tale", new Date(2010, 1, 1)),
-            new Book(8, "345678901", "Shuggie Bain", new Date(2020, 1, 1)),
-            new Book(9, "345678912", "Microserfs", new Date(2000, 1, 1)),
-    };
 }
