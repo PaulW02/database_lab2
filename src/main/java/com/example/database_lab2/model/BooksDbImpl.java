@@ -248,25 +248,27 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> genreCollection = database.getCollection("genre");
         ObjectId authorId = null;
         ObjectId genreId = null;
-        MongoCursor<Document> findAuthor = (MongoCursor<Document>) authorCollection.find(eq("authorName", authorName));
-        MongoCursor<Document> findGenre = (MongoCursor<Document>) genreCollection.find(eq("genreName", genre));
+        FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
+        FindIterable findGenre = genreCollection.find(eq("genreName", genre));
 
-        if (findAuthor.hasNext()){
-            Document authorDoc = findAuthor.next();
+        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
+            Document authorDoc = cursor.next();
             authorId = authorDoc.getObjectId("_id");
-            System.out.println(authorId);
-        }else{
+        }
+
+        for (MongoCursor<Document> cursor = findGenre.iterator(); cursor.hasNext();) {
+            Document genreDoc = cursor.next();
+            genreId = genreDoc.getObjectId("_id");
+        }
+
+        if (authorId == null){
             Document newAuthor = new Document("authorName", authorName);
             authorCollection.insertOne(newAuthor);
             authorId = newAuthor.getObjectId("_id");
             System.out.println(authorId);
         }
 
-        if (findGenre.hasNext()){
-            Document genreDoc = findGenre.next();
-            genreId = genreDoc.getObjectId("_id");
-            System.out.println(genreId);
-        }else{
+        if (genreId == null){
             Document newGenre = new Document("genreName", genre);
             genreCollection.insertOne(newGenre);
             genreId = newGenre.getObjectId("_id");
