@@ -1,6 +1,4 @@
-package com.example.database_lab1.model;
-
-import org.controlsfx.control.Rating;
+package com.example.database_lab2.model;
 
 import java.util.Date;
 

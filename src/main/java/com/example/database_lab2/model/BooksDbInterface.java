@@ -1,4 +1,6 @@
-package com.example.database_lab1.model;
+package com.example.database_lab2.model;
+
+import com.mongodb.client.MongoDatabase;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -21,10 +23,10 @@ public interface BooksDbInterface {
     
     /**
      * Connect to the database.
-     * @param database
-     * @return true on successful connection.
+     *
+     * @return database on successful connection.
      */
-    public boolean connect(String database) throws BooksDbException, ClassNotFoundException, SQLException;
+    public MongoDatabase connect();
     
     public void disconnect() throws BooksDbException, SQLException;
     

@@ -1,7 +1,7 @@
-package com.example.database_lab1;
+package com.example.database_lab2;
 
-import com.example.database_lab1.model.BooksDbImpl;
-import com.example.database_lab1.view.BooksPane;
+import com.example.database_lab2.model.BooksDbImpl;
+import com.example.database_lab2.view.BooksPane;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;

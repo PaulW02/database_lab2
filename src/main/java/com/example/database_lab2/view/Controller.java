@@ -1,6 +1,6 @@
-package com.example.database_lab1.view;
+package com.example.database_lab2.view;
 
-import com.example.database_lab1.model.*;
+import com.example.database_lab2.model.*;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 
@@ -35,7 +35,7 @@ public class Controller {
             try {
                 if (title != "" && isbn != "" && published != null && authorName != "" && genre != "") {
                     Date publishedDate = Date.valueOf(published);
-                    booksDb.connect(DB_NAME);
+                    //booksDb.connect(DB_NAME);
                     Book newBook = booksDb.addBook(title, isbn, publishedDate, authorName, genre);
 
                     Platform.runLater(() -> {
@@ -60,7 +60,7 @@ public class Controller {
         new Thread(() -> {
             try {
                 if (bookId != 0) {
-                    booksDb.connect(DB_NAME);
+                    //booksDb.connect(DB_NAME);
                     Book deletedBook = booksDb.getBookById(bookId);
                     booksDb.removeBook(bookId);
                     Platform.runLater(() -> {
@@ -94,7 +94,7 @@ public class Controller {
     protected void onUpdateBook(int bookId, String newTitle, String newAuthor, String newGenre) {
         new Thread(() -> {
             try {
-                booksDb.connect(DB_NAME);
+                //booksDb.connect(DB_NAME);
                 Book bookToBeUpdated = booksDb.getBookById(bookId);
                 if (newTitle.length() > 1) {
                     booksDb.updateTitleBook(newTitle, bookId);
@@ -139,7 +139,7 @@ public class Controller {
             {
                 try {
                     if (searchFor != null && searchFor.length() > 0) {
-                        booksDb.connect(DB_NAME);
+                        //booksDb.connect(DB_NAME);
                         List<Book> result = new ArrayList<>();
                         switch (mode) {
                             case Title:
@@ -184,7 +184,7 @@ public class Controller {
         new Thread(() -> {
             try {
                 if (username != "" && password != "") {
-                    booksDb.connect(DB_NAME);
+                    //booksDb.connect(DB_NAME);
                     final User user = booksDb.loginUser(username, password);
                     javafx.application.Platform.runLater(() -> {
                         this.booksView.setCurrentUser(user);
@@ -219,7 +219,7 @@ public class Controller {
         new Thread(() -> {
             try {
                 if (name != "" && username != "" && password != "") {
-                    booksDb.connect(DB_NAME);
+                    //booksDb.connect(DB_NAME);
                     if (booksDb.registerUser(name, username, password)) {
                         final User user = booksDb.loginUser(username, password);
                         javafx.application.Platform.runLater(() -> {
@@ -254,7 +254,7 @@ public class Controller {
     protected void getAllBooks() {
         new Thread(() -> {
             try {
-                booksDb.connect(DB_NAME);
+                //booksDb.connect(DB_NAME);
                 final List<Book> books = booksDb.getAllBooks();
                 javafx.application.Platform.runLater(() -> booksView.setBooks(books));
                 booksDb.disconnect();
@@ -268,7 +268,7 @@ public class Controller {
         new Thread(() -> {
             try {
                 if (bookId != 0 && userId != 0 && reviewText != "" && rating != 0) {
-                    booksDb.connect(DB_NAME);
+                    //booksDb.connect(DB_NAME);
                     Book reviewedBook = booksDb.getBookById(bookId);
                     booksDb.reviewBook(bookId, userId, rating, reviewText);
                     Platform.runLater(() -> {
@@ -296,7 +296,7 @@ public class Controller {
     protected void getBooksNotReviewed(int userId) {
         new Thread(() -> {
             try {
-                booksDb.connect(DB_NAME);
+                //booksDb.connect(DB_NAME);
                 final List<Book> books = booksDb.getBooksNotReviewed(userId);
                 Platform.runLater(() -> booksView.setBooksNotReviewed(books));
                 booksDb.disconnect();

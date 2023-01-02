@@ -1,9 +1,9 @@
-package com.example.database_lab1.view;
+package com.example.database_lab2.view;
 
 import java.sql.Date;
 import java.util.List;
 
-import com.example.database_lab1.model.*;
+import com.example.database_lab2.model.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -482,11 +482,8 @@ public class BooksPane extends VBox {
         manageMenu.getItems().addAll(addItem, removeItem, updateItem, reviewItem);
 
         EventHandler<ActionEvent> addBookHandler = actionEvent -> {
-            if (currentUser != null) {
-                initAddBookPopup(controller); // save data?
-            }else{
-                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
-            }
+            initAddBookPopup(controller);
+
         };
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 

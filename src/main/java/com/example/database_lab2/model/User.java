@@ -1,6 +1,4 @@
-package com.example.database_lab1.model;
-
-import org.w3c.dom.ls.LSOutput;
+package com.example.database_lab2.model;
 
 public class User {
 

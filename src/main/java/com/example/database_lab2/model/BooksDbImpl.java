@@ -3,14 +3,23 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.example.database_lab1.model;
+package com.example.database_lab2.model;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.*;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+
+import static com.mongodb.client.model.Filters.eq;
 
 /**
  * A mock implementation of the BooksDBInterface interface to demonstrate how to
@@ -21,27 +30,20 @@ import java.util.List;
  * @author anderslm@kth.se
  */
 public class BooksDbImpl implements BooksDbInterface {
+    private static final String DB_NAME = "booksdb";
     private Connection con;
 
     public BooksDbImpl() {}
 
     @Override
-    public boolean connect(String database) throws BooksDbException {
-        if(database == null) {
-            throw new RuntimeException("Database provided is null. Please specify a database name.");
-        }
-        String server = "jdbc:mysql://localhost:3306/" + database+ "?UseClientEnc=UTF8";
-        this.con = null;
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(server, "root", "1234");
-            System.out.println("Connection done!");
-            return true;
-        } catch (ClassNotFoundException e) {
-            throw new BooksDbException("Class could not be found, check your driver", e);
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with your connection", e);
-        }
+    public MongoDatabase connect() {
+        ConnectionString connectionString = new ConnectionString("mongodb://PaulW02:Adda2002%21@ac-edsmrsu-shard-00-00.4jdrzx1.mongodb.net:27017,ac-edsmrsu-shard-00-01.4jdrzx1.mongodb.net:27017,ac-edsmrsu-shard-00-02.4jdrzx1.mongodb.net:27017/?ssl=true&replicaSet=atlas-7w5ul6-shard-0&authSource=admin&retryWrites=true&w=majority");
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .applyConnectionString(connectionString)
+                .build();
+        MongoClient mongoClient = MongoClients.create(settings);
+        MongoDatabase database = mongoClient.getDatabase(DB_NAME);
+        return database;
     }
 
     @Override
@@ -240,41 +242,46 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns a book with all attributes for a book in the Book class.
      * */
     @Override
-    public Book addBook(String title, String isbn, Date published, String authorName, String genre)
-            throws BooksDbException {
-        try {
-            this.con.setAutoCommit(false);
-            int bookId = getBookIdByISBN(isbn);
-            if (bookId == 0) {
-                String sql = "INSERT INTO book (title, isbn, published) VALUES (?, ?, ?)";
-                PreparedStatement stmt = this.con.prepareStatement(sql);
-                stmt.setString(1, title);
-                stmt.setString(2, isbn);
-                stmt.setDate(3, published);
-                stmt.executeUpdate();
-                addAuthor(authorName);
-                addAuthorToBook(isbn, authorName);
-                addGenreToBook(isbn, genre);
-                bookId = getBookIdByISBN(isbn);
-                this.con.commit();
-            }
-            return new Book(bookId, title, isbn, published);
-        } catch (SQLException e) {
-            if (this.con != null){
-                try {
-                    this.con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        }finally {
-            try {
-                this.con.setAutoCommit(true);
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
-            }
+    public Book addBook(String title, String isbn, Date published, String authorName, String genre) {
+        MongoDatabase database = connect();
+        MongoCollection<Document> authorCollection = database.getCollection("author");
+        MongoCollection<Document> genreCollection = database.getCollection("genre");
+        ObjectId authorId = null;
+        ObjectId genreId = null;
+        MongoCursor<Document> findAuthor = (MongoCursor<Document>) authorCollection.find(eq("authorName", authorName));
+        MongoCursor<Document> findGenre = (MongoCursor<Document>) genreCollection.find(eq("genreName", genre));
+
+        if (findAuthor.hasNext()){
+            Document authorDoc = findAuthor.next();
+            authorId = authorDoc.getObjectId("_id");
+            System.out.println(authorId);
+        }else{
+            Document newAuthor = new Document("authorName", authorName);
+            authorCollection.insertOne(newAuthor);
+            authorId = newAuthor.getObjectId("_id");
+            System.out.println(authorId);
         }
+
+        if (findGenre.hasNext()){
+            Document genreDoc = findGenre.next();
+            genreId = genreDoc.getObjectId("_id");
+            System.out.println(genreId);
+        }else{
+            Document newGenre = new Document("genreName", genre);
+            genreCollection.insertOne(newGenre);
+            genreId = newGenre.getObjectId("_id");
+            System.out.println(genreId);
+        }
+
+        Document document = new Document("title", title) //Subdokument
+                        .append("isbn", isbn)
+                        .append("published", published)
+                        .append("author", Arrays.asList(authorId))
+                        .append("genre", Arrays.asList(genreId));
+        MongoCollection<Document> collection = database.getCollection("book");
+        collection.insertOne(document);
+        ObjectId id = document.getObjectId("_id");
+        return new Book(document.getString("isbn"), document.getString("title"), (Date) document.getDate("published"));
     }
 
     /**

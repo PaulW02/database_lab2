@@ -1,4 +1,4 @@
-package com.example.database_lab1.model;
+package com.example.database_lab2.model;
 
 import java.sql.Date;
 import java.util.ArrayList;
