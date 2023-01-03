@@ -1,6 +1,7 @@
 package com.example.database_lab2.view;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.database_lab2.model.*;
@@ -39,8 +40,8 @@ public class BooksPane extends VBox {
     private Label usernameLbl = new Label();
     private MenuBar menuBar;
     private User currentUser = null;
-    private List<Book> books;
-    private List<Book> booksNotReviewed;
+    private List<Book> books = new ArrayList<>();
+    private List<Book> booksNotReviewed = new ArrayList<>();
     private Stage bookViewPopup;
     private Stage initLoginPopupwindow;
     private Stage initRegisterPopupWindow;
@@ -392,7 +393,7 @@ public class BooksPane extends VBox {
         Button removeBookBtn= new Button("Remove book");
 
         removeBookBtn.setOnAction(e -> {
-            controller.onRemoveBook(booksComboBox.getValue().getBookId());
+            controller.onRemoveBook(booksComboBox.getValue().getIsbn());
             initRemoveBookPopup.close();
         });
 
@@ -444,7 +445,7 @@ public class BooksPane extends VBox {
 
 
         updateBookBtn.setOnAction(e -> {
-            controller.onUpdateBook(booksComboBox.getValue().getBookId(),newTitleField.getText(),authorField.getText(),genreComboBox.getValue() == null ? null:genreComboBox.getValue().toString());
+            controller.onUpdateBook(booksComboBox.getValue().getIsbn(),newTitleField.getText(),authorField.getText(),genreComboBox.getValue() == null ? null:genreComboBox.getValue().toString());
             initUpdateBookPopup.close();
         });
 
@@ -552,7 +553,7 @@ public class BooksPane extends VBox {
         Button reviewBookBtn= new Button("Submit review");
 
         reviewBookBtn.setOnAction(e -> {
-            controller.onReviewBook(booksNotReviewedComboBox.getValue().getBookId(), this.currentUser.getUserId(), reviewTextArea.getText(), rating.getRating());
+            controller.onReviewBook(booksNotReviewedComboBox.getValue().getIsbn(), this.currentUser.getUsername(), reviewTextArea.getText(), rating.getRating());
             initReviewBookPopup.close();
         });
 

@@ -1,9 +1,8 @@
 package com.example.database_lab2.model;
 
-import com.mongodb.client.MongoDatabase;
+import org.bson.types.ObjectId;
 
 import java.sql.Date;
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -23,10 +22,8 @@ public interface BooksDbInterface {
     
     /**
      * Connect to the database.
-     *
-     * @return database on successful connection.
      */
-    public MongoDatabase connect();
+    public void connect();
     
     public void disconnect();
     
@@ -42,13 +39,13 @@ public interface BooksDbInterface {
 
     List<Genre> getGenresByBookId(int bookId);
 
-    boolean removeBook(int bookId);
+    boolean removeBook(String isbn);
 
     Book addBook(String title, String isbn, Date published, String authorName, String genre);
 
     void addGenreToBook(String isbn, String genre);
 
-    void updateTitleBook(String newTitle, int bookId);
+    void updateTitleBook(String newTitle, String isbn);
 
     void addAuthorToBook(String isbn, String authorName);
 
@@ -68,15 +65,17 @@ public interface BooksDbInterface {
 
     List<Author> getAllAuthors();
 
-    void reviewBook(int bookId, int userId, double rating, String reviewText);
+    void reviewBook(String isbn, String username, double rating, String reviewText);
+
+    void addReviewToBook(ObjectId id, String isbn);
 
     List<Book> getBooksNotReviewed(String username);
-
-    Book getBookById(int bookId);
 
     List<Review> getReviewsByBookId(int bookId);
 
     User getUserByUsername(String username);
+
+    Book getBookByISBN(String isbn);
 
     // TODO: Add abstract methods for all inserts, deletes and queries
     // mentioned in the instructions for the assignement.

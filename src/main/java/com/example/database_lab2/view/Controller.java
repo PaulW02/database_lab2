@@ -28,6 +28,7 @@ public class Controller {
     public Controller(BooksDbInterface booksDb, BooksPane booksView) {
         this.booksDb = booksDb;
         this.booksView = booksView;
+        this.booksDb.connect();
     }
 
     protected void onAddBook(String title, String isbn, LocalDate published, String authorName, String genre){
@@ -56,13 +57,13 @@ public class Controller {
         }).start();
     }
 
-    protected void onRemoveBook(int bookId){
+    protected void onRemoveBook(String isbn){
         new Thread(() -> {
             try {
-                if (bookId != 0) {
+                if (isbn != "") {
                     //booksDb.connect(DB_NAME);
-                    Book deletedBook = booksDb.getBookById(bookId);
-                    booksDb.removeBook(bookId);
+                    Book deletedBook = booksDb.getBookByISBN(isbn);
+                    booksDb.removeBook(isbn);
                     Platform.runLater(() -> {
                         List<Book> books = booksView.getBooks();
                         List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
@@ -91,13 +92,13 @@ public class Controller {
         }).start();
     }
 
-    protected void onUpdateBook(int bookId, String newTitle, String newAuthor, String newGenre) {
+    protected void onUpdateBook(String isbn, String newTitle, String newAuthor, String newGenre) {
         new Thread(() -> {
             try {
                 //booksDb.connect(DB_NAME);
-                Book bookToBeUpdated = booksDb.getBookById(bookId);
+                Book bookToBeUpdated = booksDb.getBookByISBN(isbn);
                 if (newTitle.length() > 1) {
-                    booksDb.updateTitleBook(newTitle, bookId);
+                    booksDb.updateTitleBook(newTitle, isbn);
                 }
                 if (newAuthor.length() > 1) {
                     booksDb.addAuthor(newAuthor);
@@ -107,7 +108,7 @@ public class Controller {
                     booksDb.addGenreToBook(bookToBeUpdated.getIsbn(), newGenre);
                 }
                 System.out.println("Test1");
-                Book updatedBook = booksDb.getBookById(bookId);
+                Book updatedBook = booksDb.getBookByISBN(isbn);
                 System.out.println("Test2");
                 Platform.runLater(() -> {
                     List<Book> books = booksView.getBooks();
@@ -264,13 +265,13 @@ public class Controller {
         }).start();
     }
 
-    protected void onReviewBook(int bookId, int userId, String reviewText, double rating) {
+    protected void onReviewBook(String isbn, String username, String reviewText, double rating) {
         new Thread(() -> {
             try {
-                if (bookId != 0 && userId != 0 && reviewText != "" && rating != 0) {
+                if (isbn != "" && username != "" && reviewText != "" && rating != 0) {
                     //booksDb.connect(DB_NAME);
-                    Book reviewedBook = booksDb.getBookById(bookId);
-                    booksDb.reviewBook(bookId, userId, rating, reviewText);
+                    Book reviewedBook = booksDb.getBookByISBN(isbn);
+                    booksDb.reviewBook(isbn, username, rating, reviewText);
                     Platform.runLater(() -> {
                         List<Book> books = booksView.getBooksNotReviewed();
                         Iterator<Book> bookIterator = books.iterator();
