@@ -293,8 +293,8 @@ public class BooksDbImpl implements BooksDbInterface {
 
         if (genreId == null){
             Document document = new Document("genreName", genre);
-            genreId = document.getObjectId("_id");
             genreCollection.insertOne(document);
+            genreId = document.getObjectId("_id");
         }
         Document query = new Document()
                 .append("genre", new Document("$in", Collections.singletonList(genreId)))
@@ -462,7 +462,7 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> booksCollection = database.getCollection("book");
         FindIterable<Document> bookDocs = booksCollection.find(eq("isbn", isbn));
         Document bookDoc = bookDocs.iterator().next();
-        return new Book(bookDoc.getString("isbn"), bookDoc.getString("title"), (Date) bookDoc.getDate("published"));
+        return new Book(bookDoc.getString("isbn"), bookDoc.getString("title"), bookDoc.getDate("published"));
     }
 
     /**
@@ -784,30 +784,27 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public List<Book> getBooksNotReviewed(String username) {
-        User user = getUserByUsername(username);
+        ObjectId userId = getUserIdByUsername(username);
         List<Book> books = new ArrayList<>();
         MongoCollection<Document> collection = database.getCollection("book");
 
-        FindIterable<Document> result = collection.find();
+        Document query = new Document()
+                .append("review", new Document("$ne", new Document("userId", userId)));
 
-        if (result.first() == null) {
-
-        }
-
-        MongoCursor<Document> cursor = collection.find().iterator();
-
-
-
-        try {
-            while (cursor.hasNext()) {
-                Document book = cursor.next();
-                books.add(new Book(book.getString("isbn"), book.getString("title"), book.getDate("published")));
-                // do something with the book document
-            }
-        } finally {
-            cursor.close();
+        FindIterable<Document> result = collection.find(query);
+        for (MongoCursor<Document> cursor = result.iterator(); cursor.hasNext();) {
+            Document doc = cursor.next();
+            books.add(new Book(doc.getString("isbn"), doc.getString("title"), doc.getDate("published")));
         }
         return books;
+    }
+
+    @Override
+    public ObjectId getUserIdByUsername(String username) {
+        MongoCollection<Document> collection = database.getCollection("user");
+        FindIterable<Document> userDocs = collection.find(eq("username", username));
+        Document userDoc = userDocs.iterator().next();
+        return userDoc.getObjectId("_id");
     }
 
     /**

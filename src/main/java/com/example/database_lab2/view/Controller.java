@@ -93,7 +93,6 @@ public class Controller {
     protected void onUpdateBook(String isbn, String newTitle, String newAuthor, String newGenre) {
         new Thread(() -> {
             try {
-                //booksDb.connect(DB_NAME);
                 Book bookToBeUpdated = booksDb.getBookByISBN(isbn);
                 if (newTitle.length() > 1) {
                     booksDb.updateTitleBook(newTitle, isbn);
@@ -105,9 +104,7 @@ public class Controller {
                 if (newGenre != null) {
                     booksDb.addGenreToBook(bookToBeUpdated.getIsbn(), newGenre);
                 }
-                System.out.println("Test1");
                 Book updatedBook = booksDb.getBookByISBN(isbn);
-                System.out.println("Test2");
                 Platform.runLater(() -> {
                     List<Book> books = booksView.getBooks();
                     List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
@@ -127,7 +124,7 @@ public class Controller {
                     booksView.setBooksNotReviewed(booksNotReviewed);
                 });
             } catch (Exception e) {
-                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
+                Platform.runLater(() -> booksView.showAlertAndWait("D " + e, ERROR));
             }
         }).start();
     }

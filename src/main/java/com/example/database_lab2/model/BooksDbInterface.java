@@ -73,6 +73,8 @@ public interface BooksDbInterface {
 
     List<Review> getReviewsByBookId(int bookId);
 
+    ObjectId getUserIdByUsername(String username);
+
     User getUserByUsername(String username);
 
     Book getBookByISBN(String isbn);
