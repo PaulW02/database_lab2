@@ -22,6 +22,7 @@ import org.bson.types.ObjectId;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Updates.set;
 
 /**
  * A mock implementation of the BooksDBInterface interface to demonstrate how to
@@ -209,15 +210,8 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public void updateTitleBook(String newTitle, String isbn)
     {
-        try{
-            String sql = "UPDATE book SET title = ? WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1,newTitle);
-            stmt.setInt(2, 1);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-
-        }
+        MongoCollection<Document> collection = database.getCollection("book");
+        collection.updateOne(eq("isbn", isbn), set("title", newTitle));
     }
 
     /**
@@ -345,24 +339,30 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void addAuthorToBook(String isbn, String authorName) {
-        try {
-            String sql = "SELECT * FROM book_author WHERE book_id = ? and author_id = ?";
-            PreparedStatement stmt;
-            stmt = this.con.prepareStatement(sql);
-            int bookId = getBookIdByISBN(isbn);
-            int authorId = getAuthorByName(authorName).getAuthorId();
-            stmt.setInt(1, bookId);
-            stmt.setInt(2, authorId);
-            ResultSet rs = stmt.executeQuery();
-            if (!rs.next()) {
-                sql = "INSERT INTO book_author (book_id, author_id) VALUES (?,?)";
-                stmt = this.con.prepareStatement(sql);
-                stmt.setInt(1, bookId);
-                stmt.setInt(2, authorId);
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
+        MongoCollection<Document> bookCollection = database.getCollection("book");
+        MongoCollection<Document> authorCollection = database.getCollection("author");
+        ObjectId authorId = null;
+        FindIterable findAuthor = authorCollection.find(eq("author", authorName));
 
+        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
+            Document authorDoc = cursor.next();
+            authorId = authorDoc.getObjectId("_id");
+        }
+
+        if (authorId == null){
+            Document document = new Document("authorName", authorName);
+            authorCollection.insertOne(document);
+            authorId = document.getObjectId("_id");
+        }
+        Document query = new Document()
+                .append("author", new Document("$in", Collections.singletonList(authorId)))
+                .append("isbn", new Document("$eq", isbn));
+
+        FindIterable<Document> result = bookCollection.find(query);
+
+        if (result.first() == null) {
+            Document update = new Document("$push", new Document("author", authorId));
+            bookCollection.updateOne(eq("isbn", isbn), update);
         }
     }
 
@@ -406,18 +406,13 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public Author addAuthor(String authorName)
     {
-        try {
-            if (getAuthorByName(authorName).getAuthorId() == 0) {
-                String sql = "INSERT INTO author (name) VALUES (?)";
-                PreparedStatement stmt = this.con.prepareStatement(sql);
-                stmt.setString(1, authorName);
-                stmt.executeUpdate();
-            }
-            return getAuthorByName(authorName);
-        } catch (SQLException e) {
-
+        MongoCollection<Document> collection = database.getCollection("author");
+        Document author = collection.find(eq("name", authorName)).first();
+        if (author == null) {
+            author = new Document("name", authorName);
+            collection.insertOne(author);
         }
-        return null;
+        return new Author(author.getString("name"));
     }
 
     /**
