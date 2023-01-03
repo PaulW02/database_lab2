@@ -109,13 +109,13 @@ public class Controller {
                     List<Book> books = booksView.getBooks();
                     List<Book> booksNotReviewed = booksView.getBooksNotReviewed();
                     for (Book b: books) {
-                        if (b.getBookId() == updatedBook.getBookId()){
+                        if (b.getIsbn() == updatedBook.getIsbn()){
                             books.set(books.indexOf(b), updatedBook);
                             break;
                         }
                     }
                     for (Book b: booksNotReviewed) {
-                        if (b.getBookId() == updatedBook.getBookId()){
+                        if (b.getIsbn() == updatedBook.getIsbn()){
                             booksNotReviewed.set(booksNotReviewed.indexOf(b), updatedBook);
                             break;
                         }
@@ -266,7 +266,7 @@ public class Controller {
                         Iterator<Book> bookIterator = books.iterator();
                         while (bookIterator.hasNext()){
                             Book book = bookIterator.next();
-                            if (book.getBookId() == reviewedBook.getBookId()){
+                            if (book.getIsbn().equals(reviewedBook.getIsbn())){
                                 books.remove(books.indexOf(book));
                                 break;
                             }

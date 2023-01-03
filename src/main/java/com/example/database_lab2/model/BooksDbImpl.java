@@ -8,10 +8,8 @@ package com.example.database_lab2.model;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.sql.Date;
+import java.util.*;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
@@ -22,6 +20,8 @@ import org.bson.types.ObjectId;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Projections.fields;
+import static com.mongodb.client.model.Projections.include;
 
 /**
  * A mock implementation of the BooksDBInterface interface to demonstrate how to
@@ -751,7 +751,7 @@ public class BooksDbImpl implements BooksDbInterface {
 
             MongoCollection<Document> bookCollection = database.getCollection("book");
             Document query = new Document()
-                    .append("review", new Document("$elemMatch", new Document("userId", userId)))
+                    .append("review", new Document("$elemMatch", new Document("$eq", userId)))
                     .append("isbn", new Document("$eq", isbn));
 
             FindIterable<Document> result = bookCollection.find(query);
@@ -786,16 +786,26 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> getBooksNotReviewed(String username) {
         ObjectId userId = getUserIdByUsername(username);
         List<Book> books = new ArrayList<>();
-        MongoCollection<Document> collection = database.getCollection("book");
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        MongoCollection<Document> reviewsCollection = database.getCollection("review");
 
-        Document query = new Document()
-                .append("review", new Document("$ne", new Document("userId", userId)));
+// Find the object IDs of the reviews written by the user
+        List<ObjectId> reviewIds = reviewsCollection.find(eq("user", userId))
+                .projection(fields(include("_id")))
+                .map(doc -> doc.getObjectId("_id"))
+                .into(new ArrayList<>());
 
-        FindIterable<Document> result = collection.find(query);
-        for (MongoCursor<Document> cursor = result.iterator(); cursor.hasNext();) {
+        BasicDBObject query = new BasicDBObject();
+        query.put("review", new BasicDBObject("$nin", reviewIds));
+
+        MongoCursor<Document> cursor = booksCollection.find(query).iterator();
+
+        while (cursor.hasNext()) {
             Document doc = cursor.next();
             books.add(new Book(doc.getString("isbn"), doc.getString("title"), doc.getDate("published")));
+            System.out.println(doc);
         }
+
         return books;
     }
 
