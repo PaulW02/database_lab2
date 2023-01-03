@@ -47,7 +47,6 @@ public class Controller {
                         booksView.setBooks(books);
                         booksView.setBooksNotReviewed(booksNotReviewed);
                     });
-                    booksDb.disconnect();
                 } else {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
@@ -82,7 +81,6 @@ public class Controller {
                         booksView.setBooks(books);
                         booksView.setBooksNotReviewed(booksNotReviewed);
                     });
-                    booksDb.disconnect();
                 } else {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
@@ -128,7 +126,6 @@ public class Controller {
                     booksView.setBooks(books);
                     booksView.setBooksNotReviewed(booksNotReviewed);
                 });
-                booksDb.disconnect();
             } catch (Exception e) {
                 Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }
@@ -170,7 +167,6 @@ public class Controller {
                             Platform.runLater(() -> booksView.displayBooks(books));
 
                         }
-                        booksDb.disconnect();
                     } else {
                         Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                     }
@@ -205,11 +201,9 @@ public class Controller {
                             booksView.showAlertAndWait("The password is wrong!", Alert.AlertType.WARNING);
                         }
                     });
-                    booksDb.disconnect();
                 }else {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
-                booksDb.disconnect();
             } catch (Exception e) {
                 Platform.runLater(() -> booksView.showAlertAndWait("This username does not exist!", ERROR));
             }
@@ -236,13 +230,12 @@ public class Controller {
                                     booksView.initUserView(this);
                                 });
                                 this.booksView.getSignUpBtn().setDisable(true);
-                                //getBooksNotReviewed(user.getUserId());
+                                getBooksNotReviewed(user.getUsername());
                             }else{
                                 booksView.showAlertAndWait("The username or password is wrong!", Alert.AlertType.WARNING);
                             }
                         });
                     }
-                    booksDb.disconnect();
                 } else {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
@@ -258,9 +251,8 @@ public class Controller {
                 //booksDb.connect(DB_NAME);
                 final List<Book> books = booksDb.getAllBooks();
                 javafx.application.Platform.runLater(() -> booksView.setBooks(books));
-                booksDb.disconnect();
             } catch (Exception e) {
-                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
+                Platform.runLater(() -> booksView.showAlertAndWait(""+ e, ERROR));
             }
         }).start();
     }
@@ -284,7 +276,6 @@ public class Controller {
                         }
                         booksView.setBooksNotReviewed(books);
                     });
-                    booksDb.disconnect();
                 } else {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
@@ -300,7 +291,6 @@ public class Controller {
                 //booksDb.connect(DB_NAME);
                 final List<Book> books = booksDb.getBooksNotReviewed(username);
                 Platform.runLater(() -> booksView.setBooksNotReviewed(books));
-                booksDb.disconnect();
             } catch (Exception e) {
                 Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
             }

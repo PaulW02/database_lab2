@@ -697,11 +697,17 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> getAllBooks() {
         List<Book> books = new ArrayList<>();
-        MongoCollection<Document> booksCollection = database.getCollection("book");
-        FindIterable<Document> bookDocs = booksCollection.find();
+        MongoCollection<Document> collection = database.getCollection("book");
+        MongoCursor<Document> cursor = collection.find().iterator();
 
-        for (Document book: bookDocs) {
-            books.add(new Book(book.getString("isbn"), book.getString("title"), (Date) book.getDate("published")));
+        try {
+            while (cursor.hasNext()) {
+                Document book = cursor.next();
+                books.add(new Book(book.getString("isbn"), book.getString("title"), book.getDate("published")));
+                // do something with the book document
+            }
+        } finally {
+            cursor.close();
         }
         return books;
     }
@@ -778,12 +784,28 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public List<Book> getBooksNotReviewed(String username) {
+        User user = getUserByUsername(username);
         List<Book> books = new ArrayList<>();
-        MongoCollection<Document> booksCollection = database.getCollection("book");
-        FindIterable<Document> bookDocs = booksCollection.find();
+        MongoCollection<Document> collection = database.getCollection("book");
 
-        for (Document book: bookDocs) {
-            books.add(new Book(book.getString("isbn"), book.getString("title"), (Date) book.getDate("published")));
+        FindIterable<Document> result = collection.find();
+
+        if (result.first() == null) {
+
+        }
+
+        MongoCursor<Document> cursor = collection.find().iterator();
+
+
+
+        try {
+            while (cursor.hasNext()) {
+                Document book = cursor.next();
+                books.add(new Book(book.getString("isbn"), book.getString("title"), book.getDate("published")));
+                // do something with the book document
+            }
+        } finally {
+            cursor.close();
         }
         return books;
     }

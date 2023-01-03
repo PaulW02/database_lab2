@@ -40,8 +40,8 @@ public class BooksPane extends VBox {
     private Label usernameLbl = new Label();
     private MenuBar menuBar;
     private User currentUser = null;
-    private List<Book> books = new ArrayList<>();
-    private List<Book> booksNotReviewed = new ArrayList<>();
+    private List<Book> books;
+    private List<Book> booksNotReviewed;
     private Stage bookViewPopup;
     private Stage initLoginPopupwindow;
     private Stage initRegisterPopupWindow;
@@ -457,7 +457,6 @@ public class BooksPane extends VBox {
         Scene updateBookScene= new Scene(layout, 600, 350);
         initUpdateBookPopup.setScene(updateBookScene);
         initUpdateBookPopup.showAndWait();
-
     }
 
 
@@ -483,8 +482,11 @@ public class BooksPane extends VBox {
         manageMenu.getItems().addAll(addItem, removeItem, updateItem, reviewItem);
 
         EventHandler<ActionEvent> addBookHandler = actionEvent -> {
-            initAddBookPopup(controller);
-
+            if (currentUser != null) {
+                initAddBookPopup(controller); // save data?
+            }else{
+                showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
+            }
         };
         addItem.addEventHandler(ActionEvent.ACTION, addBookHandler);
 
@@ -498,13 +500,12 @@ public class BooksPane extends VBox {
         removeItem.addEventHandler(ActionEvent.ACTION, removeBookHandler);
 
         EventHandler<ActionEvent> updateBookHandler = actionEvent -> {
-            initUpdateBookPopup(controller);
-/*            if (currentUser != null) {
+            if (currentUser != null) {
                 initUpdateBookPopup(controller); // save data?
             }else{
                 showAlertAndWait("You need to login first!", Alert.AlertType.WARNING);
             }
- */      };
+        };
         updateItem.addEventHandler(ActionEvent.ACTION, updateBookHandler);
 
         EventHandler<ActionEvent> reviewBookHandler = actionEvent -> {
