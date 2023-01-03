@@ -730,26 +730,16 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns a list of books.
      * */
     @Override
-    public List<Book> getAllBooks() throws BooksDbException {
-        ResultSet rs = null;
-        try {
-            List<Book> books = new ArrayList<>();
-            String sql = "SELECT * FROM book";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            rs = stmt.executeQuery();
-            while (rs.next()){
-                books.add(new Book(rs.getInt("book_id"), rs.getString("title"), rs.getString("isbn"), rs.getDate("published")));
-            }
-            return books;
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
+    public List<Book> getAllBooks() {
+        MongoDatabase database = connect();
+        List<Book> books = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("books");
+        FindIterable<Document> bookDocs = booksCollection.find();
+
+        for (Document book: bookDocs) {
+            books.add(new Book(book.getString("isbn"), book.getString("title"), (Date) book.getDate("published")));
         }
+        return books;
     }
 
     /**
