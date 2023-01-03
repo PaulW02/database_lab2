@@ -10,8 +10,10 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -64,29 +66,24 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByTitle(String searchTitle)
     {
-        ResultSet rs = null;
-        try {
-            List<Book> result = new ArrayList<>();
-            searchTitle = searchTitle.toLowerCase();
-            String sql = "SELECT * FROM book WHERE title LIKE ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, "%"+searchTitle+"%");
-            rs = stmt.executeQuery();
+        MongoCollection<Document> bookCollection = database.getCollection("book");
 
-            while (rs.next()) {
-                result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
+        List<Book> result = new ArrayList<>();
+        searchTitle = searchTitle.toLowerCase();
+
+        BasicDBObject query = new BasicDBObject();
+        query.put("title", new BasicDBObject("$regex", java.util.regex.Pattern.compile(searchTitle)));
+
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        (Date) bookDoc.getDate("published")
+                ));
             }
-            return result;
-        } catch (SQLException e) {
-
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-
-            }
-        }
-        return null;
+        return result;
     }
 
     /**
@@ -97,28 +94,24 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByISBN(String searchISBN)
     {
-        ResultSet rs = null;
-        try {
-            List<Book> result = new ArrayList<>();
-            String sql = "SELECT * FROM book WHERE isbn LIKE ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, "%"+searchISBN+"%");
-            rs = stmt.executeQuery();
+        MongoCollection<Document> bookCollection = database.getCollection("book");
 
-            while (rs.next()) {
-                result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
-            }
-            return result;
-        } catch (SQLException e) {
+        List<Book> result = new ArrayList<>();
+        searchISBN = searchISBN.toLowerCase();
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        BasicDBObject query = new BasicDBObject();
+        query.put("searchISBN", java.util.regex.Pattern.compile(searchISBN));
 
-            }
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+        while (cursor.hasNext()) {
+            Document bookDoc = cursor.next();
+            result.add(new Book(
+                    bookDoc.getString("isbn"),
+                    bookDoc.getString("title"),
+                    (Date) bookDoc.getDate("published")
+            ));
         }
-        return null;
+        return result;
     }
 
     /**
@@ -129,29 +122,24 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByAuthor(String searchAuthor)
     {
-        ResultSet rs = null;
-        try{
-            List<Book> result = new ArrayList<>();
-            searchAuthor = searchAuthor.toLowerCase();
-            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b INNER JOIN book_author ba ON b.book_id = ba.book_id INNER JOIN author a ON ba.author_id = a.author_id WHERE a.name LIKE ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, "%"+searchAuthor+"%");
-            rs = stmt.executeQuery();
+        MongoCollection<Document> bookCollection = database.getCollection("book");
 
-            while (rs.next()){
-                result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
-            }
-            return result;
-        } catch (SQLException e) {
+        List<Book> result = new ArrayList<>();
+        searchAuthor = searchAuthor.toLowerCase();
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        BasicDBObject query = new BasicDBObject();
+        query.put("searchAuthor", java.util.regex.Pattern.compile(searchAuthor));
 
-            }
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+        while (cursor.hasNext()) {
+            Document bookDoc = cursor.next();
+            result.add(new Book(
+                    bookDoc.getString("isbn"),
+                    bookDoc.getString("title"),
+                    (Date) bookDoc.getDate("published")
+            ));
         }
-        return null;
+        return result;
     }
 
     /**
@@ -162,29 +150,25 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByGenre(String searchGenre)
     {
-        ResultSet rs = null;
-        try {
-            List<Book> result = new ArrayList<>();
-            searchGenre = searchGenre.toLowerCase();
-            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b INNER JOIN book_genre bg ON b.book_id = bg.book_id INNER JOIN genre g ON bg.genre_id = g.genre_id WHERE g.genre_name LIKE ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, "%"+searchGenre+"%");
-            rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
-            }
-            return result;
-        } catch (SQLException e) {
+        MongoCollection<Document> bookCollection = database.getCollection("book");
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        List<Book> result = new ArrayList<>();
+        searchGenre = searchGenre.toLowerCase();
 
-            }
+        BasicDBObject query = new BasicDBObject();
+        query.put("searchGenre", java.util.regex.Pattern.compile(searchGenre));
+
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+        while (cursor.hasNext()) {
+            Document bookDoc = cursor.next();
+            result.add(new Book(
+                    bookDoc.getString("isbn"),
+                    bookDoc.getString("title"),
+                    (Date) bookDoc.getDate("published")
+            ));
         }
-        return null;
+        return result;
     }
 
     /**
@@ -195,28 +179,25 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public List<Book> searchBooksByStars(String searchStars)
     {
-        ResultSet rs = null;
-        try {
-            List<Book> result = new ArrayList<>();
-            String sql = "SELECT b.book_id, b.isbn, b.title, b.published FROM book b, review r WHERE b.book_id = r.book_id AND r.stars = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, Integer.valueOf(searchStars));
-            rs = stmt.executeQuery();
 
-            while (rs.next()) {
-                result.add(new Book(rs.getInt("book_id"), rs.getString("isbn"), rs.getString("title"), rs.getDate("published")));
-            }
-            return result;
-        } catch (SQLException e) {
+        MongoCollection<Document> bookCollection = database.getCollection("book");
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        List<Book> result = new ArrayList<>();
+        searchStars = searchStars.toLowerCase();
 
-            }
+        BasicDBObject query = new BasicDBObject();
+        query.put("searchStars", java.util.regex.Pattern.compile(searchStars));
+
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+        while (cursor.hasNext()) {
+            Document bookDoc = cursor.next();
+            result.add(new Book(
+                    bookDoc.getString("isbn"),
+                    bookDoc.getString("title"),
+                    (Date) bookDoc.getDate("published")
+            ));
         }
-        return null;
+        return result;
     }
 
     /**
@@ -299,24 +280,31 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void addGenreToBook(String isbn, String genre) {
-        try {
-            String sql = "SELECT * FROM book_genre WHERE book_id = ? and genre_id = ?";
-            PreparedStatement stmt;
-            stmt = this.con.prepareStatement(sql);
-            int bookId = getBookIdByISBN(isbn);
-            int genreId = getGenreIdByGenreName(genre);
-            stmt.setInt(1, bookId);
-            stmt.setInt(2, genreId);
-            ResultSet rs = stmt.executeQuery();
-            if (!rs.next()) {
-                sql = "INSERT INTO book_genre (book_id, genre_id) VALUES (?,?)";
-                stmt = this.con.prepareStatement(sql);
-                stmt.setInt(1, bookId);
-                stmt.setInt(2, genreId);
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
 
+        MongoCollection<Document> bookCollection = database.getCollection("book");
+        MongoCollection<Document> genreCollection = database.getCollection("genre");
+        ObjectId genreId = null;
+        FindIterable findGenre = genreCollection.find(eq("genreName", genre));
+
+        for (MongoCursor<Document> cursor = findGenre.iterator(); cursor.hasNext();) {
+            Document genreDoc = cursor.next();
+            genreId = genreDoc.getObjectId("_id");
+        }
+
+        if (genreId == null){
+            Document document = new Document("genreName", genre);
+            genreId = document.getObjectId("_id");
+            genreCollection.insertOne(document);
+        }
+        Document query = new Document()
+                .append("genre", new Document("$in", Collections.singletonList(genreId)))
+                .append("isbn", new Document("$eq", isbn));
+
+        FindIterable<Document> result = bookCollection.find(query);
+
+        if (result.first() == null) {
+            Document update = new Document("$push", new Document("genre", genreId));
+            bookCollection.updateOne(eq("isbn", isbn), update);
         }
     }
 
@@ -724,7 +712,15 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Author> getAllAuthors() {
-        return new ArrayList<>();
+
+        List<Author> authors = new ArrayList<>();
+        MongoCollection<Document> authorsCollection = database.getCollection("author");
+        FindIterable<Document> authorDocs = authorsCollection.find();
+
+        for (Document author: authorDocs) {
+            authors.add(new Author(author.getString("authorName")));
+        }
+        return authors;
     }
 
     /**
