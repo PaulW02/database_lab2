@@ -199,7 +199,7 @@ public class Controller {
                                 booksView.initUserView(this);
                             });
                             this.booksView.getSignUpBtn().setDisable(true);
-                            getBooksNotReviewed(user.getUserId());
+                            getBooksNotReviewed(user.getUsername());
                         }else{
                             booksView.showAlertAndWait("The password is wrong!", Alert.AlertType.WARNING);
                         }
@@ -235,7 +235,7 @@ public class Controller {
                                     booksView.initUserView(this);
                                 });
                                 this.booksView.getSignUpBtn().setDisable(true);
-                                getBooksNotReviewed(user.getUserId());
+                                //getBooksNotReviewed(user.getUserId());
                             }else{
                                 booksView.showAlertAndWait("The username or password is wrong!", Alert.AlertType.WARNING);
                             }
@@ -293,11 +293,11 @@ public class Controller {
         }).start();
     }
 
-    protected void getBooksNotReviewed(int userId) {
+    protected void getBooksNotReviewed(String username) {
         new Thread(() -> {
             try {
                 //booksDb.connect(DB_NAME);
-                final List<Book> books = booksDb.getBooksNotReviewed(userId);
+                final List<Book> books = booksDb.getBooksNotReviewed(username);
                 Platform.runLater(() -> booksView.setBooksNotReviewed(books));
                 booksDb.disconnect();
             } catch (Exception e) {

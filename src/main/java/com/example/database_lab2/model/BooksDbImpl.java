@@ -19,6 +19,7 @@ import com.mongodb.client.*;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
 /**
@@ -47,11 +48,11 @@ public class BooksDbImpl implements BooksDbInterface {
     }
 
     @Override
-    public void disconnect() throws BooksDbException {
+    public void disconnect() {
         try {
             this.con.close();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the connection", e);
+
         }
     }
 
@@ -62,7 +63,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Book> searchBooksByTitle(String searchTitle)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
@@ -77,14 +78,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -94,7 +96,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Book> searchBooksByISBN(String searchISBN)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
@@ -108,14 +110,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -125,7 +128,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Book> searchBooksByAuthor(String searchAuthor)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try{
             List<Book> result = new ArrayList<>();
@@ -140,14 +143,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -157,7 +161,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Book> searchBooksByGenre(String searchGenre)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
@@ -172,14 +176,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -189,7 +194,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Book> searchBooksByStars(String searchStars)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Book> result = new ArrayList<>();
@@ -203,14 +208,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -220,7 +226,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void updateTitleBook(String newTitle, int bookId)
-            throws BooksDbException{
+    {
         try{
             String sql = "UPDATE book SET title = ? WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
@@ -228,7 +234,7 @@ public class BooksDbImpl implements BooksDbInterface {
             stmt.setInt(2, bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -292,7 +298,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param genre a string parameter with a chosen genre.
      * */
     @Override
-    public void addGenreToBook(String isbn, String genre) throws BooksDbException {
+    public void addGenreToBook(String isbn, String genre) {
         try {
             String sql = "SELECT * FROM book_genre WHERE book_id = ? and genre_id = ?";
             PreparedStatement stmt;
@@ -310,7 +316,7 @@ public class BooksDbImpl implements BooksDbInterface {
                 stmt.executeUpdate();
             }
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -320,7 +326,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns the id for the specific genre.
      * */
     private int getGenreIdByGenreName(String genre)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             String sql = "SELECT genre_id FROM genre WHERE genre_name = ?";
@@ -333,14 +339,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return genreId;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return 0;
     }
 
     /**
@@ -349,7 +356,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param authorName a string parameter with a given name.
      * */
     @Override
-    public void addAuthorToBook(String isbn, String authorName) throws BooksDbException {
+    public void addAuthorToBook(String isbn, String authorName) {
         try {
             String sql = "SELECT * FROM book_author WHERE book_id = ? and author_id = ?";
             PreparedStatement stmt;
@@ -367,7 +374,7 @@ public class BooksDbImpl implements BooksDbInterface {
                 stmt.executeUpdate();
             }
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -378,7 +385,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public int getBookIdByISBN(String isbn)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             String sql = "SELECT book_id FROM book WHERE isbn = ?";
@@ -391,14 +398,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return bookId;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return 0;
     }
 
     /**
@@ -409,7 +417,7 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public Author addAuthor(String authorName)
-            throws BooksDbException {
+    {
         try {
             if (getAuthorByName(authorName).getAuthorId() == 0) {
                 String sql = "INSERT INTO author (name) VALUES (?)";
@@ -419,8 +427,9 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return getAuthorByName(authorName);
         } catch (SQLException e) {
-            throw new BooksDbException("This author already exists", e);
+
         }
+        return null;
     }
 
     /**
@@ -429,7 +438,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns an author with its id and name.
      * */
     @Override
-    public Author getAuthorByName(String authorName) throws BooksDbException{
+    public Author getAuthorByName(String authorName){
         ResultSet rs = null;
         try {
             String sql = "SELECT * FROM author WHERE name = ?";
@@ -444,14 +453,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return new Author(authorId, name);
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -460,7 +470,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns a book with its id, title, isbn, and published date.
      * */
     @Override
-    public Book getBookById(int bookId) throws BooksDbException{
+    public Book getBookById(int bookId){
         ResultSet rs = null;
         try {
             String sql = "SELECT * FROM book WHERE book_id = ?";
@@ -478,14 +488,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return new Book(bookId,isbn,title,published);
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -495,7 +506,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public List<Author> getAuthorsByBookId(int bookId)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Author> result = new ArrayList<>();
@@ -509,14 +520,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -525,7 +537,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return a list of genres with the given bookid.
      * */
     @Override
-    public List<Genre> getGenresByBookId(int bookId) throws BooksDbException {
+    public List<Genre> getGenresByBookId(int bookId) {
         ResultSet rs = null;
         try {
             List<Genre> result = new ArrayList<>();
@@ -539,14 +551,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -555,7 +568,7 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public List<Review> getReviewsByBookId(int bookId)
-            throws BooksDbException {
+    {
         ResultSet rs = null;
         try {
             List<Review> result = new ArrayList<>();
@@ -569,14 +582,15 @@ public class BooksDbImpl implements BooksDbInterface {
             }
             return result;
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         } finally {
             try {
                 rs.close();
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
+
             }
         }
+        return null;
     }
 
     /**
@@ -585,7 +599,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return true if the book has been removed.
      * */
     @Override
-    public boolean removeBook(int bookId) throws BooksDbException {
+    public boolean removeBook(int bookId) {
         try {
             con.setAutoCommit(false);
             removeBookFromAuthor(bookId);
@@ -605,28 +619,29 @@ public class BooksDbImpl implements BooksDbInterface {
                     throw new RuntimeException(ex);
                 }
             }
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }finally {
             try {
                 con.setAutoCommit(true);
             } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the SQL statement", e);
+
             }
         }
+        return false;
     }
 
     /**
      * @param bookId an int with an id for a book.
      * Removes all reviews on the specified book.
      */
-    private void removeBookReviews(int bookId) throws BooksDbException{
+    private void removeBookReviews(int bookId){
         try {
             String sql = "DELETE FROM review WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -634,14 +649,14 @@ public class BooksDbImpl implements BooksDbInterface {
      * This method removes a book from an author.
      * @param bookId an int with an id for a book.
      * */
-    private void removeBookFromAuthor(int bookId) throws BooksDbException{
+    private void removeBookFromAuthor(int bookId){
         try {
             String sql = "DELETE FROM book_author WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -649,14 +664,14 @@ public class BooksDbImpl implements BooksDbInterface {
      * This method removes a book from a genre.
      * @param bookId an int with an id for a book.
      * */
-    private void removeBookFromGenre(int bookId) throws BooksDbException{
+    private void removeBookFromGenre(int bookId){
         try {
             String sql = "DELETE FROM book_genre WHERE book_id = ?";
             PreparedStatement stmt = this.con.prepareStatement(sql);
             stmt.setInt(1, bookId);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
@@ -668,29 +683,16 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns a user where password equals the encrypted one.
      * */
     @Override
-    public User loginUser(String username, String password)
-            throws BooksDbException {
-        ResultSet rs = null;
-        try {
-            User user = null;
-            String sql = "SELECT * FROM user WHERE username = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, username);
-            rs = stmt.executeQuery();
+    public User loginUser(String username, String password) {
+        MongoDatabase database = connect();
+        MongoCollection<Document> userCollection = database.getCollection("user");
+        FindIterable findAuthor = userCollection.find(and(eq("username", username), eq("password", encryptPassword(password))));
 
-            while (rs.next()) {
-                user = new User(rs.getInt("user_id"), rs.getString("name"), rs.getString("username"), rs.getString("password"));
-            }
-            return user.getPassword().equals(encryptPassword(password)) ? user : null;
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
+        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
+            Document userDoc = cursor.next();
+            return new User(userDoc.getString("name"), userDoc.getString("username"), userDoc.getString("password"));
         }
+        return null;
     }
 
     /**
@@ -701,28 +703,26 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns true if register is succeeded, and false if not.
      * */
     @Override
-    public boolean registerUser(String name, String username, String password)
-            throws BooksDbException {
-        ResultSet rs = null;
-        try {
-            String sql = "SELECT * FROM user WHERE username = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, username);
-            rs = stmt.executeQuery();
-            if (!rs.next()){
-                sql = "INSERT INTO user (name, username, password) VALUES (?, ?, ?)";
-                stmt = this.con.prepareStatement(sql);
-                stmt.setString(1, name);
-                stmt.setString(2, username);
-                stmt.setString(3, encryptPassword(password));
-                stmt.executeUpdate();
-                return true;
-            }else{
-                return false;
-            }
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+    public boolean registerUser(String name, String username, String password) {
+        MongoDatabase database = connect();
+        MongoCollection<Document> userCollection = database.getCollection("user");
+        ObjectId userId = null;
+        FindIterable findAuthor = userCollection.find(eq("username", username));
+
+        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
+            Document userDoc = cursor.next();
+            userId = userDoc.getObjectId("_id");
         }
+
+        if (userId == null){
+            Document document = new Document("name", name) //Subdokument
+                    .append("username", username)
+                    .append("password", encryptPassword(password));
+            MongoCollection<Document> collection = database.getCollection("user");
+            collection.insertOne(document);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -733,7 +733,7 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> getAllBooks() {
         MongoDatabase database = connect();
         List<Book> books = new ArrayList<>();
-        MongoCollection<Document> booksCollection = database.getCollection("books");
+        MongoCollection<Document> booksCollection = database.getCollection("book");
         FindIterable<Document> bookDocs = booksCollection.find();
 
         for (Document book: bookDocs) {
@@ -747,26 +747,8 @@ public class BooksDbImpl implements BooksDbInterface {
      * @return returns a list of authors.
      * */
     @Override
-    public List<Author> getAllAuthors() throws BooksDbException {
-        ResultSet rs = null;
-        try {
-            List<Author> authors = new ArrayList<>();
-            String sql = "SELECT * FROM author";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            rs = stmt.executeQuery();
-            while (rs.next()){
-                authors.add(new Author(rs.getInt("author_id"), rs.getString("name")));
-            }
-            return authors;
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
-        }
+    public List<Author> getAllAuthors() {
+        return new ArrayList<>();
     }
 
     /**
@@ -777,7 +759,7 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param reviewText a String parameter with a review text.
      * */
     @Override
-    public void reviewBook(int bookId, int userId, double rating, String reviewText) throws BooksDbException {
+    public void reviewBook(int bookId, int userId, double rating, String reviewText) {
         try {
             String sql = "INSERT INTO review (book_id, user_id, stars, review_text, review_date) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement stmt = this.con.prepareStatement(sql);
@@ -788,70 +770,29 @@ public class BooksDbImpl implements BooksDbInterface {
             stmt.setDate(5, Date.valueOf(LocalDate.now()));
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
+
         }
     }
 
     /**
      * This method returns all the books that have yet not been reviewed by a user.
-     * @param userId an int parameter with an id for a user.
+     *
+     * @param username an int parameter with an id for a user.
      * @return returns a list of books.
-     * */
+     */
     @Override
-    public List<Book> getBooksNotReviewed(int userId) throws BooksDbException {
-        ResultSet rs = null;
-        try {
-            List<Book> books = new ArrayList<>();
-            String sql = "SELECT * FROM book WHERE book_id NOT IN (SELECT b.book_id FROM book b, review r WHERE r.book_id = b.book_id AND r.user_id = ?)";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, userId);
-            rs = stmt.executeQuery();
-            while (rs.next()){
-                books.add(new Book(rs.getInt("book_id"), rs.getString("title"), rs.getString("isbn"), rs.getDate("published")));
-            }
-            return books;
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
-        }
+    public List<Book> getBooksNotReviewed(String username) {
+        return null;
     }
 
     /**
      * This method returns a user by their id.
-     * @param userId an int parameter with a user id.
+     * @param username an string parameter with a username.
      * @return returns a user.
      * */
     @Override
-    public User getUserById(int userId) throws BooksDbException{
-        ResultSet rs = null;
-        try {
-            String sql = "SELECT * FROM user WHERE user_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, userId);
-            rs = stmt.executeQuery();
-            String name = "";
-            String username = "";
-            String password = "";
-            while (rs.next()){
-                name = rs.getString("name");
-                username = rs.getString("username");
-                password = rs.getString("password");
-            }
-            return new User(userId, name, username, password);
-        } catch (SQLException e) {
-            throw new BooksDbException("There is something wrong with the SQL statement", e);
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                throw new BooksDbException("There is something wrong with the connection", e);
-            }
-        }
+    public User getUserByUsername(String username){
+        return new User("", "", "");
     }
 
     /**
