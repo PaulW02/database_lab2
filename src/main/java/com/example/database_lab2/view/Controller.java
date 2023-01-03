@@ -134,7 +134,6 @@ public class Controller {
             {
                 try {
                     if (searchFor != null && searchFor.length() > 0) {
-                        //booksDb.connect(DB_NAME);
                         List<Book> result = new ArrayList<>();
                         switch (mode) {
                             case Title:

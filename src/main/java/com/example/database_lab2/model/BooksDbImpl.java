@@ -12,16 +12,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Block;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.set;
 
 /**
@@ -69,6 +70,20 @@ public class BooksDbImpl implements BooksDbInterface {
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
 
+        FindIterable<Document> find = bookCollection.find(regex("title", java.util.regex.Pattern.compile(searchTitle)));
+
+        List<Book> books = new ArrayList<>();
+        for (MongoCursor<Document> cursor = find.iterator(); cursor.hasNext();) {
+            Document bookDoc = cursor.next();
+            books.add(new Book(
+                    bookDoc.getString("isbn"),
+                    bookDoc.getString("title"),
+                    (Date) bookDoc.getDate("published")
+            ));
+        }
+        return books;
+        /*MongoCollection<Document> bookCollection = database.getCollection("book");
+
         List<Book> result = new ArrayList<>();
         searchTitle = searchTitle.toLowerCase();
 
@@ -84,7 +99,7 @@ public class BooksDbImpl implements BooksDbInterface {
                         (Date) bookDoc.getDate("published")
                 ));
             }
-        return result;
+        return result;*/
     }
 
     /**
@@ -562,32 +577,17 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public boolean removeBook(String isbn) {
-        try {
-            con.setAutoCommit(false);
-            removeBookFromAuthor(1);
-            removeBookFromGenre(1);
-            removeBookReviews(1);
-            String sql = "DELETE FROM book WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, 1);
-            stmt.executeUpdate();
-            con.commit();
-            return true;
-        } catch (SQLException e) {
-            if (con != null){
-                try {
-                    con.rollback();
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
+        MongoCollection<Document> bookCollection = database.getCollection("book");
+        ObjectId bookId = null;
+        FindIterable findbook = bookCollection.find(eq("isbn", isbn));
 
-        }finally {
-            try {
-                con.setAutoCommit(true);
-            } catch (SQLException e) {
+        for (MongoCursor<Document> cursor = findbook.iterator(); cursor.hasNext();) {
+            Document bookDoc = cursor.next();
+            bookId = bookDoc.getObjectId("_id");
+        }
 
-            }
+        if (bookId != null){
+            bookCollection.deleteOne(eq("isbn", isbn));
         }
         return false;
     }
