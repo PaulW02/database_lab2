@@ -22,6 +22,7 @@ import com.mongodb.Block;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
+import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -81,7 +82,7 @@ public class BooksDbImpl implements BooksDbInterface {
 
         bookCollection.createIndex(new BasicDBObject("title", "text"));
         BasicDBObject query = new BasicDBObject();
-        query.put("$text", new BasicDBObject("$search", searchTitle));
+        query.put("title", new BasicDBObject("$regex", searchTitle));
 
         MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
@@ -108,10 +109,10 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> bookCollection = database.getCollection("book");
 
         List<Book> result = new ArrayList<>();
-        searchISBN = searchISBN.toLowerCase();
 
         BasicDBObject query = new BasicDBObject();
-        query.put("searchISBN", java.util.regex.Pattern.compile(searchISBN));
+        query.put("isbn", new BasicDBObject("$text", searchISBN));
+        bookCollection.createIndex(new BasicDBObject("isbn", "text"));
 
         MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
