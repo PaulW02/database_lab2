@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import static com.mongodb.client.model.Filters.and;
@@ -75,37 +77,24 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByTitle(String searchTitle)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-
-        FindIterable<Document> find = bookCollection.find(regex("title", java.util.regex.Pattern.compile(searchTitle)));
-
         List<Book> books = new ArrayList<>();
-        for (MongoCursor<Document> cursor = find.iterator(); cursor.hasNext();) {
+
+        bookCollection.createIndex(new BasicDBObject("title", "text"));
+        BasicDBObject query = new BasicDBObject();
+        query.put("$text", new BasicDBObject("$search", searchTitle));
+
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+
+        while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
             books.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
-                    (Date) bookDoc.getDate("published")
+                    bookDoc.getDate("published")
             ));
+            System.out.println(bookDoc);
         }
         return books;
-        /*MongoCollection<Document> bookCollection = database.getCollection("book");
-
-        List<Book> result = new ArrayList<>();
-        searchTitle = searchTitle.toLowerCase();
-
-        BasicDBObject query = new BasicDBObject();
-        query.put("title", new BasicDBObject("$regex", java.util.regex.Pattern.compile(searchTitle)));
-
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
-            while (cursor.hasNext()) {
-                Document bookDoc = cursor.next();
-                result.add(new Book(
-                        bookDoc.getString("isbn"),
-                        bookDoc.getString("title"),
-                        (Date) bookDoc.getDate("published")
-                ));
-            }
-        return result;*/
     }
 
     /**
@@ -483,96 +472,108 @@ public class BooksDbImpl implements BooksDbInterface {
 
     /**
      * This book returns a list of authors connected with a specific bookid.
-     * @param bookId an int with an id for a book.
+     * @param isbn an int with an id for a book.
      * @return a list of authors with the given bookid.
      * */
     @Override
-    public List<Author> getAuthorsByBookId(int bookId)
+    public List<Author> getAuthorsByISBN(String isbn)
     {
-        ResultSet rs = null;
-        try {
-            List<Author> result = new ArrayList<>();
-            String sql = "SELECT a.author_id, a.name FROM book b, author a, book_author ba WHERE b.book_id = ba.book_id AND ba.author_id = a.author_id AND b.book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            rs = stmt.executeQuery();
+        List<Author> authors = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("book");
 
-            while (rs.next()) {
-                result.add(new Author(rs.getInt("author_id"), rs.getString("name")));
-            }
-            return result;
-        } catch (SQLException e) {
+        BasicDBObject query = new BasicDBObject();
+        query.put("isbn", isbn);
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$match", query),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "author")
+                                .append("localField", "author")
+                                .append("foreignField", "_id")
+                                .append("as", "author")
+                )
+        );
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        Document bookDoc = booksCollection.aggregate(pipeline).first();
 
+        if (bookDoc != null) {
+            List<Document> authorDocs = (List<Document>) bookDoc.get("author");
+            for (Document authorDoc : authorDocs) {
+                authors.add(new Author(authorDoc.getString("authorName")));
             }
         }
-        return null;
+        return authors;
     }
 
     /**
      * This book returns a list of genres connected with a specific bookid.
-     * @param bookId an int with an id for a book.
+     * @param isbn an int with an id for a book.
      * @return a list of genres with the given bookid.
      * */
     @Override
-    public List<Genre> getGenresByBookId(int bookId) {
-        ResultSet rs = null;
-        try {
-            List<Genre> result = new ArrayList<>();
-            String sql = "SELECT g.genre_name FROM book b, genre g, book_genre bg WHERE b.book_id = bg.book_id AND bg.genre_id = g.genre_id AND b.book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            rs = stmt.executeQuery();
+    public List<Genre> getGenresByISBN(String isbn) {
+        List<Genre> genres = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        BasicDBObject query = new BasicDBObject();
+        query.put("isbn", isbn);
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$match", query),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "genre")
+                                .append("localField", "genre")
+                                .append("foreignField", "_id")
+                                .append("as", "genre")
+                )
+        );
 
-            while (rs.next()) {
-                result.add(Genre.valueOf(rs.getString("genre_name")));
-            }
-            return result;
-        } catch (SQLException e) {
+        Document bookDoc = booksCollection.aggregate(pipeline).first();
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-
+        if (bookDoc != null) {
+            List<Document> genreDocs = (List<Document>) bookDoc.get("genre");
+            for (Document genreDoc : genreDocs) {
+                genres.add(Genre.valueOf(genreDoc.getString("genreName")));
             }
         }
-        return null;
+        return genres;
     }
 
     /**
-     * @param bookId an int with an id for a book.
+     * @param isbn an int with an id for a book.
      * @return a list of all the reviews on the book with the specified bookId
      */
     @Override
-    public List<Review> getReviewsByBookId(int bookId)
+    public List<Review> getReviewsByISBN(String isbn)
     {
-        ResultSet rs = null;
-        try {
-            List<Review> result = new ArrayList<>();
-            String sql = "SELECT * FROM review WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            rs = stmt.executeQuery();
+        List<Review> reviews = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("book");
 
-            while (rs.next()) {
-                result.add(new Review(rs.getInt("book_id"), rs.getInt("user_id"), rs.getInt("stars"), rs.getDate("review_date"), rs.getString("review_text")));
-            }
-            return result;
-        } catch (SQLException e) {
+        BasicDBObject query = new BasicDBObject();
+        query.put("isbn", isbn);
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$match", query),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "review")
+                                .append("localField", "review")
+                                .append("foreignField", "_id")
+                                .append("as", "review")
+                )
+        );
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+        Document bookDoc = booksCollection.aggregate(pipeline).first();
+        MongoCollection<Document> userCollection = database.getCollection("user");
 
+        if (bookDoc != null) {
+            System.out.println(bookDoc.getString("review") + " dawdadad");
+            List<Document> reviewDocs = (List<Document>) bookDoc.get("review");
+            for (Document reviewDoc : reviewDocs) {
+                System.out.println(reviewDoc.getString("user"));
+                ObjectId userId = new ObjectId(reviewDoc.getString("user"));
+                BasicDBObject userQuery = new BasicDBObject("_id", userId);
+                Document userDoc = userCollection.find(userQuery).first();
+                String username = userDoc.getString("username");
+                reviews.add(new Review(isbn, username, reviewDoc.getInteger("rating"), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
             }
         }
-        return null;
+        return reviews;
     }
 
     /**
@@ -758,8 +759,9 @@ public class BooksDbImpl implements BooksDbInterface {
             FindIterable<Document> result = bookCollection.find(query);
 
             if (result.first() == null) {
-                Document document = new Document("user", userId) //Subdokument
+                Document document = new Document("user", userId)
                         .append("rating", rating)
+                        .append("reviewDate", Date.valueOf(LocalDate.now()))
                         .append("reviewText", reviewText);
                 MongoCollection<Document> reviewCollection = database.getCollection("review");
                 reviewCollection.insertOne(document);

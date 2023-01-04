@@ -37,7 +37,7 @@ public interface BooksDbInterface {
 
     List<Book> searchBooksByStars(String searchStars);
 
-    List<Genre> getGenresByBookId(int bookId);
+    List<Genre> getGenresByISBN(String isbn);
 
     boolean removeBook(String isbn);
 
@@ -55,7 +55,7 @@ public interface BooksDbInterface {
 
     Author getAuthorByName(String authorName);
 
-    List<Author> getAuthorsByBookId(int bookId);
+    List<Author> getAuthorsByISBN(String isbn);
 
     User loginUser(String username, String password);
 
@@ -71,7 +71,7 @@ public interface BooksDbInterface {
 
     List<Book> getBooksNotReviewed(String username);
 
-    List<Review> getReviewsByBookId(int bookId);
+    List<Review> getReviewsByISBN(String isbn);
 
     ObjectId getUserIdByUsername(String username);
 

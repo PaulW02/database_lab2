@@ -3,9 +3,9 @@ package com.example.database_lab2.model;
 import java.util.Date;
 
 public class Review {
-    private int bookId;
+    private String isbn;
 
-    private int userId;
+    private String username;
 
     private int stars;
 
@@ -13,22 +13,23 @@ public class Review {
 
     private String reviewText = "";
 
-    public Review(int bookId, int userId, int stars, Date reviewDate, String reviewText) {
-        this.bookId = bookId;
-        this.userId = userId;
+
+    public Review(String isbn, String username, int stars, Date reviewDate, String reviewText) {
+        this.isbn = isbn;
+        this.username = username;
         this.stars = stars;
         this.reviewDate = reviewDate;
         this.reviewText = reviewText;
     }
 
-    public Review(int stars, Date reviewDate, String reviewText) { this(-1,-1,stars,reviewDate, reviewText);}
+    public Review(int stars, Date reviewDate, String reviewText) { this("","", stars, reviewDate, reviewText);}
 
-    public int getBookId() {
-        return bookId;
+    public String getIsbn() {
+        return isbn;
     }
 
-    public int getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
     public int getStars() {
@@ -47,6 +48,6 @@ public class Review {
 
     @Override
     public String toString() {
-        return userId + ", " + reviewText + ", " + stars + ", " + reviewDate.toString();
+        return username + ", " + reviewText + ", " + stars + ", " + reviewDate.toString();
     }
 }

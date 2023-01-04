@@ -155,9 +155,9 @@ public class Controller {
                             Platform.runLater(() -> booksView.showAlertAndWait("No results found.", INFORMATION));
                         } else {
                             for (Book book : result) {
-                                book.setAuthors(booksDb.getAuthorsByBookId(book.getBookId()));
-                                book.setGenres(booksDb.getGenresByBookId(book.getBookId()));
-                                book.setReviews(booksDb.getReviewsByBookId(book.getBookId()));
+                                book.setAuthors(booksDb.getAuthorsByISBN(book.getIsbn()));
+                                book.setGenres(booksDb.getGenresByISBN(book.getIsbn()));
+                                book.setReviews(booksDb.getReviewsByISBN(book.getIsbn()));
                             }
                             final List<Book> books = result;
                             Platform.runLater(() -> booksView.displayBooks(books));
@@ -167,7 +167,7 @@ public class Controller {
                         Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                     }
                 } catch (Exception e) {
-                    Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
+                    Platform.runLater(() -> booksView.showAlertAndWait("" + e, ERROR));
                 }
             }
         }.start();
