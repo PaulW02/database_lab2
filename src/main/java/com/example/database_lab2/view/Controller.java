@@ -167,7 +167,11 @@ public class Controller {
                         Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                     }
                 } catch (Exception e) {
-                    Platform.runLater(() -> booksView.showAlertAndWait("" + e, ERROR));
+                    Platform.runLater(() -> {
+                        System.out.println(e);
+                        booksView.showAlertAndWait("" + e, ERROR);
+
+                    });
                 }
             }
         }.start();

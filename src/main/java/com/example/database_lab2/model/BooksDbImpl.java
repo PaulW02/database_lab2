@@ -563,15 +563,14 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> userCollection = database.getCollection("user");
 
         if (bookDoc != null) {
-            System.out.println(bookDoc.getString("review") + " dawdadad");
-            List<Document> reviewDocs = (List<Document>) bookDoc.get("review");
+            System.out.println(bookDoc.get("review") + " dawdadad");
+            ArrayList<Document> reviewDocs = (ArrayList<Document>) bookDoc.get("review");
             for (Document reviewDoc : reviewDocs) {
-                System.out.println(reviewDoc.getString("user"));
-                ObjectId userId = new ObjectId(reviewDoc.getString("user"));
+                ObjectId userId = reviewDoc.getObjectId("user");
                 BasicDBObject userQuery = new BasicDBObject("_id", userId);
                 Document userDoc = userCollection.find(userQuery).first();
                 String username = userDoc.getString("username");
-                reviews.add(new Review(isbn, username, reviewDoc.getInteger("rating"), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
+                reviews.add(new Review(isbn, username, reviewDoc.getDouble("rating").intValue(), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
             }
         }
         return reviews;
