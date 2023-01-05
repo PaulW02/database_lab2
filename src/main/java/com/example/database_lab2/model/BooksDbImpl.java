@@ -135,8 +135,7 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByAuthor(String searchAuthor)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-        searchAuthor = searchAuthor.toLowerCase();
-        List<Book> books = new ArrayList<>();
+        List<Book> result = new ArrayList<>();
         List<Bson> pipeline = Arrays.asList(
                 new BasicDBObject("$unwind", "$author"),
                 new BasicDBObject("$lookup",
@@ -152,13 +151,13 @@ public class BooksDbImpl implements BooksDbInterface {
 
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
-            books.add(new Book(
+            result.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
                     bookDoc.getDate("published")
             ));
         }
-        return books;
+        return result;
     }
 
     /**
@@ -171,14 +170,20 @@ public class BooksDbImpl implements BooksDbInterface {
     {
 
         MongoCollection<Document> bookCollection = database.getCollection("book");
-
         List<Book> result = new ArrayList<>();
-        searchGenre = searchGenre.toLowerCase();
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$unwind", "$author"),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "genre")
+                                .append("localField", "genre")
+                                .append("foreignField", "_id")
+                                .append("as", "genre")
+                ),
+                new BasicDBObject("$match", new BasicDBObject("genre.genreName", searchGenre))
+        );
 
-        BasicDBObject query = new BasicDBObject();
-        query.put("searchGenre", java.util.regex.Pattern.compile(searchGenre));
+        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
 
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
             result.add(new Book(
