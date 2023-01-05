@@ -373,7 +373,7 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         MongoCollection<Document> authorCollection = database.getCollection("author");
         ObjectId authorId = null;
-        FindIterable findAuthor = authorCollection.find(eq("author", authorName));
+        FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
 
         for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
             Document authorDoc = cursor.next();
