@@ -137,12 +137,19 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         searchAuthor = searchAuthor.toLowerCase();
         List<Book> books = new ArrayList<>();
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$unwind", "$author"),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "author")
+                                .append("localField", "author")
+                                .append("foreignField", "_id")
+                                .append("as", "author")
+                ),
+                new BasicDBObject("$match", new BasicDBObject("author.authorName", searchAuthor))
+        );
 
-        bookCollection.createIndex(new BasicDBObject("authorName", "text"));
-        BasicDBObject query = new BasicDBObject();
-        query.put("authorName", new BasicDBObject("$regex", searchAuthor));
+        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
 
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
             books.add(new Book(
@@ -150,7 +157,6 @@ public class BooksDbImpl implements BooksDbInterface {
                     bookDoc.getString("title"),
                     bookDoc.getDate("published")
             ));
-            System.out.println(bookDoc);
         }
         return books;
     }
@@ -178,7 +184,7 @@ public class BooksDbImpl implements BooksDbInterface {
             result.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
-                    (Date) bookDoc.getDate("published")
+                    bookDoc.getDate("published")
             ));
         }
         return result;
@@ -194,20 +200,28 @@ public class BooksDbImpl implements BooksDbInterface {
     {
 
         MongoCollection<Document> bookCollection = database.getCollection("book");
-
+        int searchInt = Integer.parseInt(searchStars);
+        System.out.println(searchInt);
         List<Book> result = new ArrayList<>();
-        searchStars = searchStars.toLowerCase();
+        List<Bson> pipeline = Arrays.asList(
+                new BasicDBObject("$unwind", "$review"),
+                new BasicDBObject("$lookup",
+                        new BasicDBObject("from", "review")
+                                .append("localField", "review")
+                                .append("foreignField", "_id")
+                                .append("as", "review")
+                ),
+                new BasicDBObject("$match", new BasicDBObject("rating", new BasicDBObject("$gte", searchInt))),
+                new BasicDBObject("$replaceRoot", new BasicDBObject("newRoot", "$book"))
+        );
+        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
 
-        BasicDBObject query = new BasicDBObject();
-        query.put("searchStars", java.util.regex.Pattern.compile(searchStars));
-
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
             result.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
-                    (Date) bookDoc.getDate("published")
+                    bookDoc.getDate("published")
             ));
         }
         return result;
