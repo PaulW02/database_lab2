@@ -172,7 +172,7 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         List<Book> result = new ArrayList<>();
         List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$unwind", "$author"),
+                new BasicDBObject("$unwind", "$genre"),
                 new BasicDBObject("$lookup",
                         new BasicDBObject("from", "genre")
                                 .append("localField", "genre")
