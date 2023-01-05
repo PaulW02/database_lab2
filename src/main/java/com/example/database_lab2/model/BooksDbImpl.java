@@ -78,6 +78,7 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByTitle(String searchTitle)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
+        searchTitle = searchTitle.toLowerCase();
         List<Book> books = new ArrayList<>();
 
         bookCollection.createIndex(new BasicDBObject("title", "text"));
@@ -107,12 +108,11 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByISBN(String searchISBN)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-
+        searchISBN = searchISBN.toLowerCase();
         List<Book> result = new ArrayList<>();
 
         BasicDBObject query = new BasicDBObject();
-        query.put("isbn", new BasicDBObject("$text", searchISBN));
-        bookCollection.createIndex(new BasicDBObject("isbn", "text"));
+        query.put("isbn", new BasicDBObject("$regex", searchISBN));
 
         MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
@@ -120,8 +120,9 @@ public class BooksDbImpl implements BooksDbInterface {
             result.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
-                    (Date) bookDoc.getDate("published")
+                    bookDoc.getDate("published")
             ));
+            System.out.println(bookDoc);
         }
         return result;
     }
@@ -135,23 +136,24 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByAuthor(String searchAuthor)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-
-        List<Book> result = new ArrayList<>();
         searchAuthor = searchAuthor.toLowerCase();
+        List<Book> books = new ArrayList<>();
 
+        bookCollection.createIndex(new BasicDBObject("authorName", "text"));
         BasicDBObject query = new BasicDBObject();
-        query.put("searchAuthor", java.util.regex.Pattern.compile(searchAuthor));
+        query.put("authorName", new BasicDBObject("$regex", searchAuthor));
 
         MongoCursor<Document> cursor = bookCollection.find(query).iterator();
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
-            result.add(new Book(
+            books.add(new Book(
                     bookDoc.getString("isbn"),
                     bookDoc.getString("title"),
-                    (Date) bookDoc.getDate("published")
+                    bookDoc.getDate("published")
             ));
+            System.out.println(bookDoc);
         }
-        return result;
+        return books;
     }
 
     /**
