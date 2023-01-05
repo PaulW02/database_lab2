@@ -78,12 +78,11 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Book> searchBooksByTitle(String searchTitle)
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-        searchTitle = searchTitle.toLowerCase();
         List<Book> books = new ArrayList<>();
 
         bookCollection.createIndex(new BasicDBObject("title", "text"));
         BasicDBObject query = new BasicDBObject();
-        query.put("title", new BasicDBObject("$regex", searchTitle));
+        query.put("title", new BasicDBObject("$regex", searchTitle).append("$options", "i"));
 
         MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
