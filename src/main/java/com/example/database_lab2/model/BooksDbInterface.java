@@ -1,5 +1,6 @@
 package com.example.database_lab2.model;
 
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.sql.Date;
@@ -67,7 +68,7 @@ public interface BooksDbInterface {
 
     void reviewBook(String isbn, String username, double rating, String reviewText);
 
-    void addReviewToBook(ObjectId id, String isbn);
+    void addReviewToBook(Document document, String isbn);
 
     List<Book> getBooksNotReviewed(String username);
 

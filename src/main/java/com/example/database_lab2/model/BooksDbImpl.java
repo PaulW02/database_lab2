@@ -10,19 +10,14 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.Block;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
-import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -31,7 +26,6 @@ import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Projections.fields;
 import static com.mongodb.client.model.Projections.include;
-import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.set;
 
 /**
@@ -136,18 +130,9 @@ public class BooksDbImpl implements BooksDbInterface {
     {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         List<Book> result = new ArrayList<>();
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$unwind", "$author"),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "author")
-                                .append("localField", "author")
-                                .append("foreignField", "_id")
-                                .append("as", "author")
-                ),
-                new BasicDBObject("$match", new BasicDBObject("author.authorName", searchAuthor))
-        );
-
-        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
+        //bookCollection.createIndex(new BasicDBObject("author.authorName", "authorText"));
+        Document query = new Document("author.authorName", new Document("$regex", searchAuthor).append("$options", "i"));
+        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
         while (cursor.hasNext()) {
             Document bookDoc = cursor.next();
@@ -216,8 +201,7 @@ public class BooksDbImpl implements BooksDbInterface {
                                 .append("foreignField", "_id")
                                 .append("as", "review")
                 ),
-                new BasicDBObject("$match", new BasicDBObject("rating", new BasicDBObject("$gte", searchInt))),
-                new BasicDBObject("$replaceRoot", new BasicDBObject("newRoot", "$book"))
+                new BasicDBObject("$match", new BasicDBObject("rating", new BasicDBObject("$eq", (double) searchInt)))
         );
         MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
 
@@ -256,46 +240,30 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public Book addBook(String title, String isbn, Date published, String authorName, String genre) {
-        MongoCollection<Document> authorCollection = database.getCollection("author");
-        MongoCollection<Document> genreCollection = database.getCollection("genre");
-        ObjectId authorId = null;
-        ObjectId genreId = null;
-        FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
-        FindIterable findGenre = genreCollection.find(eq("genreName", genre));
-
-        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
-            Document authorDoc = cursor.next();
-            authorId = authorDoc.getObjectId("_id");
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        if (!(booksCollection.find(eq("isbn", isbn)).iterator().hasNext())) {
+            Document document = new Document("title", title)
+                    .append("isbn", isbn)
+                    .append("published", published)
+                    .append("author", Arrays.asList(new Document("authorName", authorName)))
+                    .append("genre", Arrays.asList(new Document("genreName", genre)))
+                    .append("review", new ArrayList<Document>());
+            booksCollection.insertOne(document);
+            addAuthor(authorName);
+            addGenre(genre);
+            return new Book(document.getString("isbn"), document.getString("title"), document.getDate("published"));
         }
+        return null;
+    }
 
-        for (MongoCursor<Document> cursor = findGenre.iterator(); cursor.hasNext();) {
-            Document genreDoc = cursor.next();
-            genreId = genreDoc.getObjectId("_id");
+    private Genre addGenre(String genre) {
+        MongoCollection<Document> collection = database.getCollection("genre");
+        Document genreDoc = collection.find(eq("genreName", genre)).first();
+        if (genreDoc == null) {
+            genreDoc = new Document("genreName", genre);
+            collection.insertOne(genreDoc);
         }
-
-        if (authorId == null){
-            Document newAuthor = new Document("authorName", authorName);
-            authorCollection.insertOne(newAuthor);
-            authorId = newAuthor.getObjectId("_id");
-            System.out.println(authorId);
-        }
-
-        if (genreId == null){
-            Document newGenre = new Document("genreName", genre);
-            genreCollection.insertOne(newGenre);
-            genreId = newGenre.getObjectId("_id");
-            System.out.println(genreId);
-        }
-
-        Document document = new Document("title", title) //Subdokument
-                        .append("isbn", isbn)
-                        .append("published", published)
-                        .append("author", Arrays.asList(authorId))
-                        .append("genre", Arrays.asList(genreId))
-                        .append("review", Arrays.asList());
-        MongoCollection<Document> collection = database.getCollection("book");
-        collection.insertOne(document);
-        return new Book(document.getString("isbn"), document.getString("title"), (Date) document.getDate("published"));
+        return Genre.valueOf(genreDoc.getString("genreName"));
     }
 
     /**
@@ -305,32 +273,32 @@ public class BooksDbImpl implements BooksDbInterface {
      * */
     @Override
     public void addGenreToBook(String isbn, String genre) {
-
         MongoCollection<Document> bookCollection = database.getCollection("book");
         MongoCollection<Document> genreCollection = database.getCollection("genre");
-        ObjectId genreId = null;
+        boolean newGenre = true;
+        Document book = bookCollection.find(eq("isbn", isbn)).first();
+
+
+        List<Document> genres = book.get("genre", List.class);
+
+        // Add the new genre to the list
         FindIterable findGenre = genreCollection.find(eq("genreName", genre));
 
-        for (MongoCursor<Document> cursor = findGenre.iterator(); cursor.hasNext();) {
-            Document genreDoc = cursor.next();
-            genreId = genreDoc.getObjectId("_id");
+        if (!(findGenre.iterator().hasNext())){
+            genreCollection.insertOne(new Document("genreName", genre));
         }
 
-        if (genreId == null){
-            Document document = new Document("genreName", genre);
-            genreCollection.insertOne(document);
-            genreId = document.getObjectId("_id");
+        for (Document genreDoc: genres) {
+            if (genreDoc.get("genreName").equals(genre)){
+                newGenre = false;
+            }
         }
-        Document query = new Document()
-                .append("genre", new Document("$in", Collections.singletonList(genreId)))
-                .append("isbn", new Document("$eq", isbn));
-
-        FindIterable<Document> result = bookCollection.find(query);
-
-        if (result.first() == null) {
-            Document update = new Document("$push", new Document("genre", genreId));
-            bookCollection.updateOne(eq("isbn", isbn), update);
+        if (newGenre){
+            genres.add(new Document("genreName", genre));
         }
+        // Update the book document with the modified list of genres
+        Document update = new Document("$set", new Document("genre", genres));
+        bookCollection.updateOne(eq("isbn", isbn), update);
     }
 
     /**
@@ -372,29 +340,30 @@ public class BooksDbImpl implements BooksDbInterface {
     public void addAuthorToBook(String isbn, String authorName) {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         MongoCollection<Document> authorCollection = database.getCollection("author");
-        ObjectId authorId = null;
+        boolean newAuthor = true;
+        Document book = bookCollection.find(eq("isbn", isbn)).first();
+
+
+        List<Document> authors = book.get("author", List.class);
+
+        // Add the new genre to the list
         FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
 
-        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
-            Document authorDoc = cursor.next();
-            authorId = authorDoc.getObjectId("_id");
+        if (!(findAuthor.iterator().hasNext())){
+            authorCollection.insertOne(new Document("authorName", authorName));
         }
 
-        if (authorId == null){
-            Document document = new Document("authorName", authorName);
-            authorCollection.insertOne(document);
-            authorId = document.getObjectId("_id");
+        for (Document authorDoc: authors) {
+            if (authorDoc.get("authorName").equals(authorName)){
+                newAuthor = false;
+            }
         }
-        Document query = new Document()
-                .append("author", new Document("$in", Collections.singletonList(authorId)))
-                .append("isbn", new Document("$eq", isbn));
-
-        FindIterable<Document> result = bookCollection.find(query);
-
-        if (result.first() == null) {
-            Document update = new Document("$push", new Document("author", authorId));
-            bookCollection.updateOne(eq("isbn", isbn), update);
+        if (newAuthor){
+            authors.add(new Document("authorName", authorName));
         }
+        // Update the book document with the modified list of genres
+        Document update = new Document("$set", new Document("author", authors));
+        bookCollection.updateOne(eq("isbn", isbn), update);
     }
 
     /**
@@ -438,12 +407,12 @@ public class BooksDbImpl implements BooksDbInterface {
     public Author addAuthor(String authorName)
     {
         MongoCollection<Document> collection = database.getCollection("author");
-        Document author = collection.find(eq("name", authorName)).first();
+        Document author = collection.find(eq("authorName", authorName)).first();
         if (author == null) {
-            author = new Document("name", authorName);
+            author = new Document("authorName", authorName);
             collection.insertOne(author);
         }
-        return new Author(author.getString("name"));
+        return new Author(author.getString("authorName"));
     }
 
     /**
@@ -502,25 +471,15 @@ public class BooksDbImpl implements BooksDbInterface {
         List<Author> authors = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
 
-        BasicDBObject query = new BasicDBObject();
-        query.put("isbn", isbn);
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$match", query),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "author")
-                                .append("localField", "author")
-                                .append("foreignField", "_id")
-                                .append("as", "author")
-                )
+        List<Document> pipeline = Arrays.asList(
+                new Document("$match", new Document("isbn", isbn))
         );
 
-        Document bookDoc = booksCollection.aggregate(pipeline).first();
+        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
 
-        if (bookDoc != null) {
-            List<Document> authorDocs = (List<Document>) bookDoc.get("author");
-            for (Document authorDoc : authorDocs) {
-                authors.add(new Author(authorDoc.getString("authorName")));
-            }
+        while (cursor.hasNext()) {
+            Document author = cursor.next();
+            authors.add(new Author(author.getString("authorName")));
         }
         return authors;
     }
@@ -534,25 +493,15 @@ public class BooksDbImpl implements BooksDbInterface {
     public List<Genre> getGenresByISBN(String isbn) {
         List<Genre> genres = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
-        BasicDBObject query = new BasicDBObject();
-        query.put("isbn", isbn);
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$match", query),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "genre")
-                                .append("localField", "genre")
-                                .append("foreignField", "_id")
-                                .append("as", "genre")
-                )
+        List<Document> pipeline = Arrays.asList(
+                new Document("$match", new Document("isbn", isbn))
         );
 
-        Document bookDoc = booksCollection.aggregate(pipeline).first();
+        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
 
-        if (bookDoc != null) {
-            List<Document> genreDocs = (List<Document>) bookDoc.get("genre");
-            for (Document genreDoc : genreDocs) {
-                genres.add(Genre.valueOf(genreDoc.getString("genreName")));
-            }
+        while (cursor.hasNext()) {
+            Document author = cursor.next();
+            genres.add(Genre.valueOf(author.getString("genreName")));
         }
         return genres;
     }
@@ -567,32 +516,17 @@ public class BooksDbImpl implements BooksDbInterface {
         List<Review> reviews = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
 
-        BasicDBObject query = new BasicDBObject();
-        query.put("isbn", isbn);
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$match", query),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "review")
-                                .append("localField", "review")
-                                .append("foreignField", "_id")
-                                .append("as", "review")
-                )
+        List<Document> pipeline = Arrays.asList(
+                new Document("$match", new Document("isbn", isbn))
         );
 
-        Document bookDoc = booksCollection.aggregate(pipeline).first();
-        MongoCollection<Document> userCollection = database.getCollection("user");
+        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
 
-        if (bookDoc != null) {
-            System.out.println(bookDoc.get("review") + " dawdadad");
-            ArrayList<Document> reviewDocs = (ArrayList<Document>) bookDoc.get("review");
-            for (Document reviewDoc : reviewDocs) {
-                ObjectId userId = reviewDoc.getObjectId("user");
-                BasicDBObject userQuery = new BasicDBObject("_id", userId);
-                Document userDoc = userCollection.find(userQuery).first();
-                String username = userDoc.getString("username");
-                reviews.add(new Review(isbn, username, reviewDoc.getDouble("rating").intValue(), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
-            }
+        while (cursor.hasNext()) {
+            Document reviewDoc = cursor.next();
+            reviews.add(new Review(isbn, reviewDoc.getString("user"), reviewDoc.getDouble("rating").intValue(), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
         }
+
         return reviews;
     }
 
@@ -761,41 +695,39 @@ public class BooksDbImpl implements BooksDbInterface {
     @Override
     public void reviewBook(String isbn, String username, double rating, String reviewText) {
         MongoCollection<Document> userCollection = database.getCollection("user");
-        ObjectId userId = null;
+        Document userDoc = null;
         FindIterable findUser = userCollection.find(eq("username", username));
 
         for (MongoCursor<Document> cursor = findUser.iterator(); cursor.hasNext();) {
-            Document userDoc = cursor.next();
-            userId = userDoc.getObjectId("_id");
+            userDoc = cursor.next();
         }
 
-        if (userId != null) {
+        if (userDoc != null) {
 
             MongoCollection<Document> bookCollection = database.getCollection("book");
             Document query = new Document()
-                    .append("review", new Document("$elemMatch", new Document("$eq", userId)))
+                    .append("review", new Document("$elemMatch", new Document("$eq", userDoc.get("username"))))
                     .append("isbn", new Document("$eq", isbn));
 
             FindIterable<Document> result = bookCollection.find(query);
 
             if (result.first() == null) {
-                Document document = new Document("user", userId)
+                Document document = new Document("user", userDoc.get("username"))
                         .append("rating", rating)
                         .append("reviewDate", Date.valueOf(LocalDate.now()))
                         .append("reviewText", reviewText);
                 MongoCollection<Document> reviewCollection = database.getCollection("review");
                 reviewCollection.insertOne(document);
-                addReviewToBook(document.getObjectId("_id"), isbn);
+                addReviewToBook(document, isbn);
             }
 
         }
-
     }
 
     @Override
-    public void addReviewToBook(ObjectId id, String isbn) {
+    public void addReviewToBook(Document document, String isbn) {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-        Document update = new Document("$push", new Document("review", id));
+        Document update = new Document("$push", new Document("review", document));
         bookCollection.updateOne(eq("isbn", isbn), update);
     }
 
@@ -807,19 +739,12 @@ public class BooksDbImpl implements BooksDbInterface {
      */
     @Override
     public List<Book> getBooksNotReviewed(String username) {
-        ObjectId userId = getUserIdByUsername(username);
         List<Book> books = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
-        MongoCollection<Document> reviewsCollection = database.getCollection("review");
-
-// Find the object IDs of the reviews written by the user
-        List<ObjectId> reviewIds = reviewsCollection.find(eq("user", userId))
-                .projection(fields(include("_id")))
-                .map(doc -> doc.getObjectId("_id"))
-                .into(new ArrayList<>());
-
-        BasicDBObject query = new BasicDBObject();
-        query.put("review", new BasicDBObject("$nin", reviewIds));
+        Document query = new Document("$or", Arrays.asList(
+                new Document("review", new Document("$size", 0)),
+                new Document("review.user", new Document("$ne", username))
+        ));
 
         MongoCursor<Document> cursor = booksCollection.find(query).iterator();
 

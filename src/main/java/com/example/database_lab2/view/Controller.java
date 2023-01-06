@@ -51,7 +51,10 @@ public class Controller {
                     Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));
                 }
             } catch (Exception e) {
-                Platform.runLater(() -> booksView.showAlertAndWait("Database error", ERROR));
+                Platform.runLater(() -> {
+                    System.out.println(e);
+                    booksView.showAlertAndWait("Database error", ERROR);
+                });
             }
         }).start();
     }
