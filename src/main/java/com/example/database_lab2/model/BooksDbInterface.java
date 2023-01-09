@@ -28,57 +28,51 @@ public interface BooksDbInterface {
     
     public void disconnect();
     
-    public List<Book> searchBooksByTitle(String title);
+    public List<Book> searchBooksByTitle(String title) throws BooksDbException;
 
-    public List<Book> searchBooksByISBN(String searchISBN);
+    public List<Book> searchBooksByISBN(String searchISBN) throws BooksDbException;
 
-    List<Book> searchBooksByAuthor(String searchAuthor);
+    List<Book> searchBooksByAuthor(String searchAuthor) throws BooksDbException;
 
-    List<Book> searchBooksByGenre(String searchGenre);
+    List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException;
 
-    List<Book> searchBooksByStars(String searchStars);
+    List<Book> searchBooksByStars(String searchStars) throws BooksDbException;
 
-    List<Genre> getGenresByISBN(String isbn);
+    List<Genre> getGenresByISBN(String isbn) throws BooksDbException;
 
-    boolean removeBook(String isbn);
+    void removeBook(String isbn) throws BooksDbException;
 
-    Book addBook(String title, String isbn, Date published, String authorName, String genre);
+    Book addBook(String title, String isbn, Date published, String authorName, String genre) throws BooksDbException;
 
-    void addGenreToBook(String isbn, String genre);
+    Genre addGenre(String genre) throws BooksDbException;
 
-    void updateTitleBook(String newTitle, String isbn);
+    void addGenreToBook(String isbn, String genre) throws BooksDbException;
 
-    void addAuthorToBook(String isbn, String authorName);
+    void updateTitleBook(String newTitle, String isbn) throws BooksDbException;
 
-    int getBookIdByISBN(String isbn);
+    void addAuthorToBook(String isbn, String authorName) throws BooksDbException;
 
-    Author addAuthor(String authorName);
+    Author addAuthor(String authorName) throws BooksDbException;
 
-    Author getAuthorByName(String authorName);
+    List<Author> getAuthorsByISBN(String isbn) throws BooksDbException;
 
-    List<Author> getAuthorsByISBN(String isbn);
+    User loginUser(String username, String password) throws BooksDbException;
 
-    User loginUser(String username, String password);
+    boolean registerUser(String name, String username, String password) throws BooksDbException;
 
-    boolean registerUser(String name, String username, String password);
+    List<Book> getAllBooks() throws BooksDbException;
 
-    List<Book> getAllBooks();
+    List<Author> getAllAuthors() throws BooksDbException;
 
-    List<Author> getAllAuthors();
+    void reviewBook(String isbn, String username, double rating, String reviewText) throws BooksDbException;
 
-    void reviewBook(String isbn, String username, double rating, String reviewText);
+    void addReviewToBook(Document document, String isbn) throws BooksDbException;
 
-    void addReviewToBook(Document document, String isbn);
+    List<Book> getBooksNotReviewed(String username) throws BooksDbException;
 
-    List<Book> getBooksNotReviewed(String username);
+    List<Review> getReviewsByISBN(String isbn) throws BooksDbException;
 
-    List<Review> getReviewsByISBN(String isbn);
-
-    ObjectId getUserIdByUsername(String username);
-
-    User getUserByUsername(String username);
-
-    Book getBookByISBN(String isbn);
+    Book getBookByISBN(String isbn) throws BooksDbException;
 
     // TODO: Add abstract methods for all inserts, deletes and queries
     // mentioned in the instructions for the assignement.

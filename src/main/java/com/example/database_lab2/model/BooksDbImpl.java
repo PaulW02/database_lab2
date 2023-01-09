@@ -14,18 +14,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoException;
 import com.mongodb.client.*;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Projections.fields;
-import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Updates.set;
 
 /**
@@ -39,6 +36,7 @@ import static com.mongodb.client.model.Updates.set;
 public class BooksDbImpl implements BooksDbInterface {
     private static final String DB_NAME = "booksdb";
     private MongoDatabase database;
+    private MongoClient mongoClient;
 
     private Connection con;
 
@@ -50,551 +48,469 @@ public class BooksDbImpl implements BooksDbInterface {
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .build();
-        MongoClient mongoClient = MongoClients.create(settings);
+        mongoClient = MongoClients.create(settings);
         database = mongoClient.getDatabase(DB_NAME);
     }
 
     @Override
     public void disconnect() {
-        try {
-            this.con.close();
-        } catch (SQLException e) {
-
-        }
+        this.mongoClient.close();
     }
 
     /**
      * Takes a string parameter with the searched title and returns all books containing the given string.
      * @param searchTitle takes a string parameter with the searched title
-     * @return ArrayList with all books that have a title containing the given string.
+     * @return a list of books that match the search criteria
+     * @throws BooksDbException
      * */
     @Override
-    public List<Book> searchBooksByTitle(String searchTitle)
-    {
+    public List<Book> searchBooksByTitle(String searchTitle) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-        List<Book> books = new ArrayList<>();
+        List<Book> result = new ArrayList<>();
 
-        bookCollection.createIndex(new BasicDBObject("title", "text"));
-        BasicDBObject query = new BasicDBObject();
-        query.put("title", new BasicDBObject("$regex", searchTitle).append("$options", "i"));
+        Document query = new Document("title", new Document("$regex", searchTitle).append("$options", "i"));
+        try {
+            MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
-
-        while (cursor.hasNext()) {
-            Document bookDoc = cursor.next();
-            books.add(new Book(
-                    bookDoc.getString("isbn"),
-                    bookDoc.getString("title"),
-                    bookDoc.getDate("published")
-            ));
-            System.out.println(bookDoc);
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        bookDoc.getDate("published")
+                ));
+            }
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by title: ", e);
         }
-        return books;
     }
 
     /**
      * Takes a string parameter with the searched ISBN and returns all books containing the given string.
      * @param searchISBN takes a string parameter with the searched ISBN
-     * @return ArrayList with all books that have a ISBN containing the given string.
+     * @return a list of books that match the search criteria
+     * @throws BooksDbException
      * */
     @Override
-    public List<Book> searchBooksByISBN(String searchISBN)
-    {
+    public List<Book> searchBooksByISBN(String searchISBN) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
-        searchISBN = searchISBN.toLowerCase();
         List<Book> result = new ArrayList<>();
 
-        BasicDBObject query = new BasicDBObject();
-        query.put("isbn", new BasicDBObject("$regex", searchISBN));
+        Document query = new Document("isbn", new Document("$regex", searchISBN));
+        try {
+            MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
-        while (cursor.hasNext()) {
-            Document bookDoc = cursor.next();
-            result.add(new Book(
-                    bookDoc.getString("isbn"),
-                    bookDoc.getString("title"),
-                    bookDoc.getDate("published")
-            ));
-            System.out.println(bookDoc);
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        bookDoc.getDate("published")
+                ));
+            }
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by isbn: ", e);
         }
-        return result;
     }
 
     /**
      * Takes a string parameter with the searched author and returns all books containing the given string.
      * @param searchAuthor takes a string parameter with the searched author
-     * @return ArrayList with all books that have an author's name containing the given string.
+     * @return a list of books that match the search criteria
+     * @throws BooksDbException
      * */
     @Override
-    public List<Book> searchBooksByAuthor(String searchAuthor)
-    {
+    public List<Book> searchBooksByAuthor(String searchAuthor) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         List<Book> result = new ArrayList<>();
-        //bookCollection.createIndex(new BasicDBObject("author.authorName", "authorText"));
-        Document query = new Document("author.authorName", new Document("$regex", searchAuthor).append("$options", "i"));
-        MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
-        while (cursor.hasNext()) {
-            Document bookDoc = cursor.next();
-            result.add(new Book(
-                    bookDoc.getString("isbn"),
-                    bookDoc.getString("title"),
-                    bookDoc.getDate("published")
-            ));
+        Document query = new Document("author.authorName", new Document("$regex", searchAuthor).append("$options", "i"));
+        try {
+            MongoCursor<Document> cursor = bookCollection.find(query).iterator();
+
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        bookDoc.getDate("published")
+                ));
+            }
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by author: ", e);
         }
-        return result;
     }
 
     /**
      * Takes a string parameter with the searched genre and returns all books containing the given string.
      * @param searchGenre takes a string parameter with the searched genre
-     * @return ArrayList with all books that have a genre same as the one searched.
+     * @return a list of books that match the search criteria
+     * @throws BooksDbException
      * */
     @Override
-    public List<Book> searchBooksByGenre(String searchGenre)
-    {
+    public List<Book> searchBooksByGenre(String searchGenre) throws BooksDbException {
 
         MongoCollection<Document> bookCollection = database.getCollection("book");
         List<Book> result = new ArrayList<>();
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$unwind", "$genre"),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "genre")
-                                .append("localField", "genre")
-                                .append("foreignField", "_id")
-                                .append("as", "genre")
-                ),
-                new BasicDBObject("$match", new BasicDBObject("genre.genreName", searchGenre))
-        );
 
-        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
+        Document query = new Document("genre.genreName", new Document("$regex", searchGenre).append("$options", "i"));
+        try {
+            MongoCursor<Document> cursor = bookCollection.find(query).iterator();
 
-        while (cursor.hasNext()) {
-            Document bookDoc = cursor.next();
-            result.add(new Book(
-                    bookDoc.getString("isbn"),
-                    bookDoc.getString("title"),
-                    bookDoc.getDate("published")
-            ));
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        bookDoc.getDate("published")
+                ));
+            }
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by genre: ", e);
         }
-        return result;
     }
 
     /**
-     * Takes a string parameter with the searched stars and returns all books containing the given string.
-     * @param searchStars takes a string parameter with the searched stars
-     * @return ArrayList with all books that have the same amount of stars as given.
-     * */
-    @Override
-    public List<Book> searchBooksByStars(String searchStars)
-    {
-
-        MongoCollection<Document> bookCollection = database.getCollection("book");
-        int searchInt = Integer.parseInt(searchStars);
-        System.out.println(searchInt);
-        List<Book> result = new ArrayList<>();
-        List<Bson> pipeline = Arrays.asList(
-                new BasicDBObject("$unwind", "$review"),
-                new BasicDBObject("$lookup",
-                        new BasicDBObject("from", "review")
-                                .append("localField", "review")
-                                .append("foreignField", "_id")
-                                .append("as", "review")
-                ),
-                new BasicDBObject("$match", new BasicDBObject("rating", new BasicDBObject("$eq", (double) searchInt)))
-        );
-        MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
-
-        while (cursor.hasNext()) {
-            Document bookDoc = cursor.next();
-            result.add(new Book(
-                    bookDoc.getString("isbn"),
-                    bookDoc.getString("title"),
-                    bookDoc.getDate("published")
-            ));
-        }
-        return result;
-    }
-
-    /**
-     * This method is used to take a new given title to a book and replace it with the title of an existing book.
+     * Searches the "book" collection for books that have received a specific rating in their reviews.
      *
-     * @param newTitle takes a string with a given title.
-     * @param isbn     takes an int with an id to specify a book.
+     * @param searchStars the rating to search for
+     * @return a list of books that match the search criteria
+     * @throws BooksDbException
      */
     @Override
-    public void updateTitleBook(String newTitle, String isbn)
-    {
-        MongoCollection<Document> collection = database.getCollection("book");
-        collection.updateOne(eq("isbn", isbn), set("title", newTitle));
+    public List<Book> searchBooksByStars(String searchStars) throws BooksDbException {
+        int parsedRating = Integer.parseInt(searchStars);
+        MongoCollection<Document> bookCollection = database.getCollection("book");
+        List<Book> result = new ArrayList<>();
+
+        List<Document> pipeline = Arrays.asList(
+                new Document("$unwind", "$review"),
+                new Document("$match", new Document("review.rating", parsedRating))
+        );
+
+        try {
+            MongoCursor<Document> cursor = bookCollection.aggregate(pipeline).iterator();
+
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                result.add(new Book(
+                        bookDoc.getString("isbn"),
+                        bookDoc.getString("title"),
+                        bookDoc.getDate("published")
+                ));
+            }
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by rating: ", e);
+        }
     }
 
     /**
-     * This method is used to add a new book to the database by applying all the needed attributes for a book to exist.
-     * @param title a string parameter with a given title.
-     * @param isbn a string parameter with a given isbn.
-     * @param published takes a given date as a parameter.
-     * @param authorName a string parameter with the author's name.
-     * @param genre a string parameter with the chosen genre.
-     * @return returns a book with all attributes for a book in the Book class.
-     * */
+     * Updates the title of a book in the "book" collection.
+     *
+     * @param newTitle the new title of the book
+     * @param isbn the ISBN of the book
+     * @throws BooksDbException
+     */
     @Override
-    public Book addBook(String title, String isbn, Date published, String authorName, String genre) {
-        MongoCollection<Document> booksCollection = database.getCollection("book");
-        if (!(booksCollection.find(eq("isbn", isbn)).iterator().hasNext())) {
-            Document document = new Document("title", title)
-                    .append("isbn", isbn)
-                    .append("published", published)
-                    .append("author", Arrays.asList(new Document("authorName", authorName)))
-                    .append("genre", Arrays.asList(new Document("genreName", genre)))
-                    .append("review", new ArrayList<Document>());
-            booksCollection.insertOne(document);
-            addAuthor(authorName);
-            addGenre(genre);
-            return new Book(document.getString("isbn"), document.getString("title"), document.getDate("published"));
+    public void updateTitleBook(String newTitle, String isbn) throws BooksDbException {
+        MongoCollection<Document> collection = database.getCollection("book");
+        try {
+            collection.updateOne(eq("isbn", isbn), set("title", newTitle));
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while updating the title of a book: ", e);
         }
-        return null;
     }
 
-    private Genre addGenre(String genre) {
-        MongoCollection<Document> collection = database.getCollection("genre");
-        Document genreDoc = collection.find(eq("genreName", genre)).first();
-        if (genreDoc == null) {
-            genreDoc = new Document("genreName", genre);
-            collection.insertOne(genreDoc);
+    /**
+     * Adds a book to the "book" collection.
+     *
+     * @param title the title of the book
+     * @param isbn the ISBN of the book
+     * @param published the publication date of the book
+     * @param authorName the name of the author of the book
+     * @param genre the genre of the book
+     * @return the added book, or null if the book already exists
+     * @throws BooksDbException
+     */
+    @Override
+    public Book addBook(String title, String isbn, Date published, String authorName, String genre) throws BooksDbException {
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        Book book = null;
+        try {
+            if (!(booksCollection.find(eq("isbn", isbn)).iterator().hasNext())) {
+                Document document = new Document("title", title)
+                        .append("isbn", isbn)
+                        .append("published", published)
+                        .append("author", Arrays.asList(new Document("authorName", authorName)))
+                        .append("genre", Arrays.asList(new Document("genreName", genre)))
+                        .append("review", new ArrayList<Document>());
+                booksCollection.insertOne(document);
+                addAuthor(authorName);
+                addGenre(genre);
+                book = new Book(document.getString("isbn"), document.getString("title"), document.getDate("published"));
+            }
+            return book;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding a book: ", e);
         }
-        return Genre.valueOf(genreDoc.getString("genreName"));
+    }
+
+    /**
+     * Adds a genre to the "genre" collection.
+     *
+     * @param genre the genre to add
+     * @return the added genre
+     * @throws BooksDbException
+     */
+    @Override
+    public Genre addGenre(String genre) throws BooksDbException {
+        MongoCollection<Document> collection = database.getCollection("genre");
+        Genre result = null;
+        try {
+            Document genreDoc = collection.find(eq("genreName", genre)).first();
+            if (genreDoc == null) {
+                genreDoc = new Document("genreName", genre);
+                collection.insertOne(genreDoc);
+            }
+            result = Genre.valueOf(genreDoc.getString("genreName"));
+            return result;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding a genre: ", e);
+        }
     }
 
     /**
      * This method adds a chosen genre to a book.
      * @param isbn a string parameter with a given isbn.
      * @param genre a string parameter with a chosen genre.
+     * @throws BooksDbException
      * */
     @Override
-    public void addGenreToBook(String isbn, String genre) {
+    public void addGenreToBook(String isbn, String genre) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         MongoCollection<Document> genreCollection = database.getCollection("genre");
-        boolean newGenre = true;
-        Document book = bookCollection.find(eq("isbn", isbn)).first();
-
-
-        List<Document> genres = book.get("genre", List.class);
-
-        // Add the new genre to the list
-        FindIterable findGenre = genreCollection.find(eq("genreName", genre));
-
-        if (!(findGenre.iterator().hasNext())){
-            genreCollection.insertOne(new Document("genreName", genre));
-        }
-
-        for (Document genreDoc: genres) {
-            if (genreDoc.get("genreName").equals(genre)){
-                newGenre = false;
-            }
-        }
-        if (newGenre){
-            genres.add(new Document("genreName", genre));
-        }
-        // Update the book document with the modified list of genres
-        Document update = new Document("$set", new Document("genre", genres));
-        bookCollection.updateOne(eq("isbn", isbn), update);
-    }
-
-    /**
-     * This method gets the id for a specific genre.
-     * @param genre a string parameter with a chosen genre.
-     * @return returns the id for the specific genre.
-     * */
-    private int getGenreIdByGenreName(String genre)
-    {
-        ResultSet rs = null;
         try {
-            String sql = "SELECT genre_id FROM genre WHERE genre_name = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, genre);
-            rs = stmt.executeQuery();
-            int genreId = 0;
-            while (rs.next()){
-                genreId = rs.getInt("genre_id");
-            }
-            return genreId;
-        } catch (SQLException e) {
+            boolean newGenre = true;
+            Document book = bookCollection.find(eq("isbn", isbn)).first();
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
+            List<Document> genres = book.get("genre", List.class);
 
+            // Add the new genre to the list
+            FindIterable findGenre = genreCollection.find(eq("genreName", genre));
+
+            if (!(findGenre.iterator().hasNext())){
+                genreCollection.insertOne(new Document("genreName", genre));
             }
+
+            for (Document genreDoc: genres) {
+                if (genreDoc.get("genreName").equals(genre)){
+                    newGenre = false;
+                }
+            }
+            if (newGenre){
+                genres.add(new Document("genreName", genre));
+            }
+            // Update the book document with the modified list of genres
+            Document update = new Document("$set", new Document("genre", genres));
+            bookCollection.updateOne(eq("isbn", isbn), update);
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding a genre to a book: ", e);
         }
-        return 0;
     }
 
     /**
      * This method adds an author to a specific book.
      * @param isbn a string parameter with a given isbn.
      * @param authorName a string parameter with a given name.
+     * @throws BooksDbException
      * */
     @Override
-    public void addAuthorToBook(String isbn, String authorName) {
+    public void addAuthorToBook(String isbn, String authorName) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         MongoCollection<Document> authorCollection = database.getCollection("author");
-        boolean newAuthor = true;
-        Document book = bookCollection.find(eq("isbn", isbn)).first();
-
-
-        List<Document> authors = book.get("author", List.class);
-
-        // Add the new genre to the list
-        FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
-
-        if (!(findAuthor.iterator().hasNext())){
-            authorCollection.insertOne(new Document("authorName", authorName));
-        }
-
-        for (Document authorDoc: authors) {
-            if (authorDoc.get("authorName").equals(authorName)){
-                newAuthor = false;
-            }
-        }
-        if (newAuthor){
-            authors.add(new Document("authorName", authorName));
-        }
-        // Update the book document with the modified list of genres
-        Document update = new Document("$set", new Document("author", authors));
-        bookCollection.updateOne(eq("isbn", isbn), update);
-    }
-
-    /**
-     * this method gets an id for a book with help from the isbn.
-     * @param isbn a string parameter with a given isbn.
-     * @return returns an int with the id of a specific book.
-     * */
-    @Override
-    public int getBookIdByISBN(String isbn)
-    {
-        ResultSet rs = null;
         try {
-            String sql = "SELECT book_id FROM book WHERE isbn = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, isbn);
-            rs = stmt.executeQuery();
-            int bookId = 0;
-            while (rs.next()){
-                bookId = rs.getInt("book_id");
-            }
-            return bookId;
-        } catch (SQLException e) {
+            boolean newAuthor = true;
+            Document book = bookCollection.find(eq("isbn", isbn)).first();
 
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
 
+            List<Document> authors = book.get("author", List.class);
+
+            // Add the new genre to the list
+            FindIterable findAuthor = authorCollection.find(eq("authorName", authorName));
+
+            if (!(findAuthor.iterator().hasNext())) {
+                authorCollection.insertOne(new Document("authorName", authorName));
             }
+
+            for (Document authorDoc : authors) {
+                if (authorDoc.get("authorName").equals(authorName)) {
+                    newAuthor = false;
+                }
+            }
+            if (newAuthor) {
+                authors.add(new Document("authorName", authorName));
+            }
+            // Update the book document with the modified list of genres
+            Document update = new Document("$set", new Document("author", authors));
+            bookCollection.updateOne(eq("isbn", isbn), update);
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding an author to a book: ", e);
         }
-        return 0;
     }
 
     /**
-     * this method adds an author to the database.
+     * Adds an author to the "author" collection.
      *
-     * @param authorName a string parameter with a given name.
-     * @return the newly created author or if
+     * @param authorName the name of the author
+     * @return the added author
+     * @throws BooksDbException
      */
     @Override
-    public Author addAuthor(String authorName)
-    {
+    public Author addAuthor(String authorName) throws BooksDbException {
         MongoCollection<Document> collection = database.getCollection("author");
-        Document author = collection.find(eq("authorName", authorName)).first();
-        if (author == null) {
-            author = new Document("authorName", authorName);
-            collection.insertOne(author);
-        }
-        return new Author(author.getString("authorName"));
-    }
-
-    /**
-     * This method returns an author by searching for the name.
-     * @param authorName a string parameter with a name.
-     * @return returns an author with its id and name.
-     * */
-    @Override
-    public Author getAuthorByName(String authorName){
-        ResultSet rs = null;
         try {
-            String sql = "SELECT * FROM author WHERE name = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setString(1, authorName);
-            rs = stmt.executeQuery();
-            int authorId = 0;
-            String name = "";
-            while (rs.next()){
-                authorId = rs.getInt("author_id");
-                name = rs.getString("name");
+            Document author = collection.find(eq("authorName", authorName)).first();
+            if (author == null) {
+                author = new Document("authorName", authorName);
+                collection.insertOne(author);
             }
-            return new Author(authorId, name);
-        } catch (SQLException e) {
-
-        } finally {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-
-            }
+            return new Author(author.getString("authorName"));
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding an author: ", e);
         }
-        return null;
     }
 
     /**
-     * This book returns a book with a given id.
-     * @param isbn an int with an id for a specific book.
-     * @return returns a book with its id, title, isbn, and published date.
-     * */
+     * Gets a book from the "book" collection by its ISBN.
+     *
+     * @param isbn the ISBN of the book
+     * @return the book with the specified ISBN, or null if it does not exist
+     * @throws BooksDbException
+     */
     @Override
-    public Book getBookByISBN(String isbn){
+    public Book getBookByISBN(String isbn) throws BooksDbException {
         MongoCollection<Document> booksCollection = database.getCollection("book");
-        FindIterable<Document> bookDocs = booksCollection.find(eq("isbn", isbn));
-        Document bookDoc = bookDocs.iterator().next();
-        return new Book(bookDoc.getString("isbn"), bookDoc.getString("title"), bookDoc.getDate("published"));
+
+        try {
+            FindIterable<Document> bookDocs = booksCollection.find(eq("isbn", isbn));
+            Document bookDoc = bookDocs.iterator().next();
+            return new Book(bookDoc.getString("isbn"), bookDoc.getString("title"), bookDoc.getDate("published"));
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting book by isbn: ", e);
+        }
     }
 
     /**
-     * This book returns a list of authors connected with a specific bookid.
-     * @param isbn an int with an id for a book.
-     * @return a list of authors with the given bookid.
-     * */
+     * Gets a list of authors for a book in the "book" collection by its ISBN.
+     *
+     * @param isbn the ISBN of the book
+     * @return a list of authors for the book with the specified ISBN
+     * @throws BooksDbException
+     */
     @Override
-    public List<Author> getAuthorsByISBN(String isbn)
-    {
+    public List<Author> getAuthorsByISBN(String isbn) throws BooksDbException {
         List<Author> authors = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
-
-        List<Document> pipeline = Arrays.asList(
-                new Document("$match", new Document("isbn", isbn))
-        );
-
-        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
-
-        while (cursor.hasNext()) {
-            Document author = cursor.next();
-            authors.add(new Author(author.getString("authorName")));
+        try {
+            MongoCursor<Document> cursor = booksCollection.find(eq("isbn", isbn)).iterator();
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                List<Document> authorDocs = bookDoc.get("author", List.class);
+                for (Document authorDoc : authorDocs) {
+                    authors.add(new Author(authorDoc.getString("authorName")));
+                }
+            }
+            return authors;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting authors to a book by isbn: ", e);
         }
-        return authors;
     }
 
     /**
-     * This book returns a list of genres connected with a specific bookid.
-     * @param isbn an int with an id for a book.
-     * @return a list of genres with the given bookid.
-     * */
-    @Override
-    public List<Genre> getGenresByISBN(String isbn) {
-        List<Genre> genres = new ArrayList<>();
-        MongoCollection<Document> booksCollection = database.getCollection("book");
-        List<Document> pipeline = Arrays.asList(
-                new Document("$match", new Document("isbn", isbn))
-        );
-
-        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
-
-        while (cursor.hasNext()) {
-            Document author = cursor.next();
-            genres.add(Genre.valueOf(author.getString("genreName")));
-        }
-        return genres;
-    }
-
-    /**
-     * @param isbn an int with an id for a book.
-     * @return a list of all the reviews on the book with the specified bookId
+     * Gets a list of genres for a book in the "book" collection by its ISBN.
+     *
+     * @param isbn the ISBN of the book
+     * @return a list of genres for the book with the specified ISBN
+     * @throws BooksDbException
      */
     @Override
-    public List<Review> getReviewsByISBN(String isbn)
-    {
+    public List<Genre> getGenresByISBN(String isbn) throws BooksDbException {
+        List<Genre> genres = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        try {
+            MongoCursor<Document> cursor = booksCollection.find(eq("isbn", isbn)).iterator();
+
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                List<Document> genreDocs = bookDoc.get("genre", List.class);
+                for (Document genreDoc : genreDocs) {
+                    genres.add(Genre.valueOf(genreDoc.getString("genreName")));
+                }
+            }
+            return genres;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting genres to a book by isbn: ", e);
+        }
+    }
+
+    /**
+     * Gets a list of reviews for a book in the "book" collection by its ISBN.
+     *
+     * @param isbn the ISBN of the book
+     * @return a list of reviews for the book with the specified ISBN
+     * @throws BooksDbException
+     */
+    @Override
+    public List<Review> getReviewsByISBN(String isbn) throws BooksDbException {
         List<Review> reviews = new ArrayList<>();
         MongoCollection<Document> booksCollection = database.getCollection("book");
 
-        List<Document> pipeline = Arrays.asList(
-                new Document("$match", new Document("isbn", isbn))
-        );
+        try {
+            MongoCursor<Document> cursor = booksCollection.find(eq("isbn", isbn)).iterator();
 
-        MongoCursor<Document> cursor = booksCollection.aggregate(pipeline).iterator();
+            while (cursor.hasNext()) {
+                Document bookDoc = cursor.next();
+                List<Document> reviewDocs = bookDoc.get("review", List.class);
+                for (Document reviewDoc : reviewDocs) {
+                    reviews.add(new Review(isbn, reviewDoc.getString("user"), reviewDoc.getDouble("rating").intValue(), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
+                }
+            }
 
-        while (cursor.hasNext()) {
-            Document reviewDoc = cursor.next();
-            reviews.add(new Review(isbn, reviewDoc.getString("user"), reviewDoc.getDouble("rating").intValue(), reviewDoc.getDate("reviewDate"), reviewDoc.getString("reviewText")));
+            return reviews;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting reviews to a book by isbn: ", e);
         }
-
-        return reviews;
     }
 
     /**
-     * This method removes a book from the database by its id.
+     * Removes a book from the "book" collection by its ISBN.
      *
-     * @param isbn an int with an id for a book.
-     * @return true if the book has been removed.
+     * @param isbn the ISBN of the book
+     * @throws BooksDbException
      */
     @Override
-    public boolean removeBook(String isbn) {
+    public void removeBook(String isbn) throws BooksDbException {
         MongoCollection<Document> bookCollection = database.getCollection("book");
         ObjectId bookId = null;
-        FindIterable findbook = bookCollection.find(eq("isbn", isbn));
 
-        for (MongoCursor<Document> cursor = findbook.iterator(); cursor.hasNext();) {
-            Document bookDoc = cursor.next();
-            bookId = bookDoc.getObjectId("_id");
-        }
-
-        if (bookId != null){
-            bookCollection.deleteOne(eq("isbn", isbn));
-        }
-        return false;
-    }
-
-    /**
-     * @param bookId an int with an id for a book.
-     * Removes all reviews on the specified book.
-     */
-    private void removeBookReviews(int bookId){
         try {
-            String sql = "DELETE FROM review WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
+            FindIterable findbook = bookCollection.find(eq("isbn", isbn));
 
-        }
-    }
+            for (MongoCursor<Document> cursor = findbook.iterator(); cursor.hasNext(); ) {
+                Document bookDoc = cursor.next();
+                bookId = bookDoc.getObjectId("_id");
+            }
 
-    /**
-     * This method removes a book from an author.
-     * @param bookId an int with an id for a book.
-     * */
-    private void removeBookFromAuthor(int bookId){
-        try {
-            String sql = "DELETE FROM book_author WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-
-        }
-    }
-
-    /**
-     * This method removes a book from a genre.
-     * @param bookId an int with an id for a book.
-     * */
-    private void removeBookFromGenre(int bookId){
-        try {
-            String sql = "DELETE FROM book_genre WHERE book_id = ?";
-            PreparedStatement stmt = this.con.prepareStatement(sql);
-            stmt.setInt(1, bookId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-
+            if (bookId != null) {
+                bookCollection.deleteOne(eq("isbn", isbn));
+            }
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while removing a book by isbn: ", e);
         }
     }
 
@@ -604,17 +520,23 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param username a string parameter with a username.
      * @param password a string parameter with a password.
      * @return returns a user where password equals the encrypted one.
+     * @throws BooksDbException
      * */
     @Override
-    public User loginUser(String username, String password) {
+    public User loginUser(String username, String password) throws BooksDbException {
         MongoCollection<Document> userCollection = database.getCollection("user");
-        FindIterable findAuthor = userCollection.find(and(eq("username", username), eq("password", encryptPassword(password))));
+        User user = null;
+        try {
+            FindIterable findAuthor = userCollection.find(and(eq("username", username), eq("password", encryptPassword(password))));
 
-        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
-            Document userDoc = cursor.next();
-            return new User(userDoc.getString("name"), userDoc.getString("username"), userDoc.getString("password"));
+            for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext(); ) {
+                Document userDoc = cursor.next();
+                user = new User(userDoc.getString("name"), userDoc.getString("username"), userDoc.getString("password"));
+            }
+            return user;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while user logging in: ", e);
         }
-        return null;
     }
 
     /**
@@ -623,156 +545,176 @@ public class BooksDbImpl implements BooksDbInterface {
      * @param username a string parameter with a username.
      * @param password a string password with a password.
      * @return returns true if register is succeeded, and false if not.
+     * @throws BooksDbException
      * */
     @Override
-    public boolean registerUser(String name, String username, String password) {
+    public boolean registerUser(String name, String username, String password) throws BooksDbException {
         MongoCollection<Document> userCollection = database.getCollection("user");
         ObjectId userId = null;
-        FindIterable findAuthor = userCollection.find(eq("username", username));
+        boolean registered = false;
+        try {
+            FindIterable findAuthor = userCollection.find(eq("username", username));
 
-        for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext();) {
-            Document userDoc = cursor.next();
-            userId = userDoc.getObjectId("_id");
-        }
+            for (MongoCursor<Document> cursor = findAuthor.iterator(); cursor.hasNext(); ) {
+                Document userDoc = cursor.next();
+                userId = userDoc.getObjectId("_id");
+            }
 
-        if (userId == null){
-            Document document = new Document("name", name) //Subdokument
-                    .append("username", username)
-                    .append("password", encryptPassword(password));
-            MongoCollection<Document> collection = database.getCollection("user");
-            collection.insertOne(document);
-            return true;
+            if (userId == null) {
+                Document document = new Document("name", name) //Subdokument
+                        .append("username", username)
+                        .append("password", encryptPassword(password));
+                MongoCollection<Document> collection = database.getCollection("user");
+                collection.insertOne(document);
+                registered = true;
+            }
+            return registered;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while registering user: ", e);
         }
-        return false;
     }
 
     /**
      * This method gets a list of all books in the database.
      * @return returns a list of books.
+     * @throws BooksDbException
      * */
     @Override
-    public List<Book> getAllBooks() {
+    public List<Book> getAllBooks() throws BooksDbException {
         List<Book> books = new ArrayList<>();
         MongoCollection<Document> collection = database.getCollection("book");
-        MongoCursor<Document> cursor = collection.find().iterator();
 
         try {
-            while (cursor.hasNext()) {
-                Document book = cursor.next();
-                books.add(new Book(book.getString("isbn"), book.getString("title"), book.getDate("published")));
-                // do something with the book document
+            MongoCursor<Document> cursor = collection.find().iterator();
+
+            try {
+                while (cursor.hasNext()) {
+                    Document book = cursor.next();
+                    books.add(new Book(book.getString("isbn"), book.getString("title"), book.getDate("published")));
+                }
+            } finally {
+                cursor.close();
             }
-        } finally {
-            cursor.close();
+            return books;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting all books: ", e);
         }
-        return books;
     }
 
     /**
      * This method gets a list of all authors in the database.
      * @return returns a list of authors.
+     * @throws BooksDbException
      * */
     @Override
-    public List<Author> getAllAuthors() {
+    public List<Author> getAllAuthors() throws BooksDbException {
 
         List<Author> authors = new ArrayList<>();
         MongoCollection<Document> authorsCollection = database.getCollection("author");
-        FindIterable<Document> authorDocs = authorsCollection.find();
 
-        for (Document author: authorDocs) {
-            authors.add(new Author(author.getString("authorName")));
+        try {
+            FindIterable<Document> authorDocs = authorsCollection.find();
+
+            for (Document author : authorDocs) {
+                authors.add(new Author(author.getString("authorName")));
+            }
+            return authors;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting all authors: ", e);
         }
-        return authors;
     }
+
 
     /**
      * This method is to make a review for a book with a rating a review-text.
-     * @param isbn an String parameter with an isbn for a book.
-     * @param username an String parameter with a username for a user.
+     * @param isbn a String parameter with an isbn for a book.
+     * @param username a String parameter with a username for a user.
      * @param rating a double parameter with the rating for a book.
      * @param reviewText a String parameter with a review text.
-     * */
-    @Override
-    public void reviewBook(String isbn, String username, double rating, String reviewText) {
-        MongoCollection<Document> userCollection = database.getCollection("user");
-        Document userDoc = null;
-        FindIterable findUser = userCollection.find(eq("username", username));
-
-        for (MongoCursor<Document> cursor = findUser.iterator(); cursor.hasNext();) {
-            userDoc = cursor.next();
-        }
-
-        if (userDoc != null) {
-
-            MongoCollection<Document> bookCollection = database.getCollection("book");
-            Document query = new Document()
-                    .append("review", new Document("$elemMatch", new Document("$eq", userDoc.get("username"))))
-                    .append("isbn", new Document("$eq", isbn));
-
-            FindIterable<Document> result = bookCollection.find(query);
-
-            if (result.first() == null) {
-                Document document = new Document("user", userDoc.get("username"))
-                        .append("rating", rating)
-                        .append("reviewDate", Date.valueOf(LocalDate.now()))
-                        .append("reviewText", reviewText);
-                MongoCollection<Document> reviewCollection = database.getCollection("review");
-                reviewCollection.insertOne(document);
-                addReviewToBook(document, isbn);
-            }
-
-        }
-    }
-
-    @Override
-    public void addReviewToBook(Document document, String isbn) {
-        MongoCollection<Document> bookCollection = database.getCollection("book");
-        Document update = new Document("$push", new Document("review", document));
-        bookCollection.updateOne(eq("isbn", isbn), update);
-    }
-
-    /**
-     * This method returns all the books that have yet not been reviewed by a user.
-     *
-     * @param username an int parameter with an id for a user.
-     * @return returns a list of books.
+     * @throws BooksDbException
      */
     @Override
-    public List<Book> getBooksNotReviewed(String username) {
-        List<Book> books = new ArrayList<>();
-        MongoCollection<Document> booksCollection = database.getCollection("book");
-        Document query = new Document("$or", Arrays.asList(
-                new Document("review", new Document("$size", 0)),
-                new Document("review.user", new Document("$ne", username))
-        ));
+    public void reviewBook(String isbn, String username, double rating, String reviewText) throws BooksDbException {
+        MongoCollection<Document> userCollection = database.getCollection("user");
+        Document userDoc = null;
 
-        MongoCursor<Document> cursor = booksCollection.find(query).iterator();
+        try {
+            FindIterable findUser = userCollection.find(eq("username", username));
 
-        while (cursor.hasNext()) {
-            Document doc = cursor.next();
-            books.add(new Book(doc.getString("isbn"), doc.getString("title"), doc.getDate("published")));
-            System.out.println(doc);
+            for (MongoCursor<Document> cursor = findUser.iterator(); cursor.hasNext(); ) {
+                userDoc = cursor.next();
+            }
+
+            if (userDoc != null) {
+
+                MongoCollection<Document> bookCollection = database.getCollection("book");
+                Document query = new Document()
+                        .append("review", new Document("$elemMatch", new Document("$eq", userDoc.get("username"))))
+                        .append("isbn", new Document("$eq", isbn));
+
+                FindIterable<Document> result = bookCollection.find(query);
+
+                if (result.first() == null) {
+                    Document document = new Document("user", userDoc.get("username"))
+                            .append("rating", rating)
+                            .append("reviewDate", Date.valueOf(LocalDate.now()))
+                            .append("reviewText", reviewText);
+                    MongoCollection<Document> reviewCollection = database.getCollection("review");
+                    reviewCollection.insertOne(document);
+                    addReviewToBook(document, isbn);
+                }
+            }
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while reviewing a book: ", e);
         }
-
-        return books;
-    }
-
-    @Override
-    public ObjectId getUserIdByUsername(String username) {
-        MongoCollection<Document> collection = database.getCollection("user");
-        FindIterable<Document> userDocs = collection.find(eq("username", username));
-        Document userDoc = userDocs.iterator().next();
-        return userDoc.getObjectId("_id");
     }
 
     /**
-     * This method returns a user by their id.
-     * @param username an string parameter with a username.
-     * @return returns a user.
-     * */
+     * Adds a review to a book in the "book" collection by its ISBN.
+     *
+     * @param document the review to add
+     * @param isbn the ISBN of the book
+     * @throws BooksDbException
+     */
     @Override
-    public User getUserByUsername(String username){
-        return new User("", "", "");
+    public void addReviewToBook(Document document, String isbn) throws BooksDbException {
+        MongoCollection<Document> bookCollection = database.getCollection("book");
+        try {
+            Document update = new Document("$push", new Document("review", document));
+            bookCollection.updateOne(eq("isbn", isbn), update);
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while adding a review to a book: ", e);
+        }
+    }
+
+    /**
+     * Gets a list of books in the "book" collection that have not been reviewed by a specified user.
+     *
+     * @param username the user
+     * @return a list of books that have not been reviewed by the user
+     * @throws BooksDbException
+     */
+    @Override
+    public List<Book> getBooksNotReviewed(String username) throws BooksDbException {
+        List<Book> books = new ArrayList<>();
+        MongoCollection<Document> booksCollection = database.getCollection("book");
+        try {
+            Document query = new Document("$or", Arrays.asList(
+                    new Document("review", new Document("$size", 0)),
+                    new Document("review.user", new Document("$ne", username))
+            ));
+
+            MongoCursor<Document> cursor = booksCollection.find(query).iterator();
+
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                books.add(new Book(doc.getString("isbn"), doc.getString("title"), doc.getDate("published")));
+            }
+
+            return books;
+        } catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while getting books that have not been reviewed by the user: ", e);
+        }
     }
 
     /**
