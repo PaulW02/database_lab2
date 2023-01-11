@@ -38,8 +38,6 @@ public class BooksDbImpl implements BooksDbInterface {
     private MongoDatabase database;
     private MongoClient mongoClient;
 
-    private Connection con;
-
     public BooksDbImpl() {}
 
     @Override

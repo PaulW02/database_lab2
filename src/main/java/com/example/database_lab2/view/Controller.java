@@ -23,8 +23,6 @@ public class Controller {
     private final BooksPane booksView; // view
     private final BooksDbInterface booksDb; // model
 
-    public static final String DB_NAME = "booksdb";
-
     public Controller(BooksDbInterface booksDb, BooksPane booksView) throws BooksDbException {
         this.booksDb = booksDb;
         this.booksView = booksView;
