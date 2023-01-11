@@ -1,5 +1,6 @@
 package com.example.database_lab2;
 
+import com.example.database_lab2.model.BooksDbException;
 import com.example.database_lab2.model.BooksDbImpl;
 import com.example.database_lab2.view.BooksPane;
 import javafx.application.Application;
@@ -14,7 +15,7 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws BooksDbException {
 
         BooksDbImpl booksDb = new BooksDbImpl(); // model
         // Don't forget to connect to the db, somewhere...

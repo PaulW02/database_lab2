@@ -25,7 +25,7 @@ public class Controller {
 
     public static final String DB_NAME = "booksdb";
 
-    public Controller(BooksDbInterface booksDb, BooksPane booksView) {
+    public Controller(BooksDbInterface booksDb, BooksPane booksView) throws BooksDbException {
         this.booksDb = booksDb;
         this.booksView = booksView;
         this.booksDb.connect();
@@ -164,7 +164,6 @@ public class Controller {
                             }
                             final List<Book> books = result;
                             Platform.runLater(() -> booksView.displayBooks(books));
-
                         }
                     } else {
                         Platform.runLater(() -> booksView.showAlertAndWait("Fill in all fields!", WARNING));

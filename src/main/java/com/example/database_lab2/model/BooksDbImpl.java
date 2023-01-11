@@ -43,18 +43,27 @@ public class BooksDbImpl implements BooksDbInterface {
     public BooksDbImpl() {}
 
     @Override
-    public void connect() {
+    public void connect()throws BooksDbException{
+        try {
         ConnectionString connectionString = new ConnectionString("mongodb://PaulW02:Adda2002%21@ac-edsmrsu-shard-00-00.4jdrzx1.mongodb.net:27017,ac-edsmrsu-shard-00-01.4jdrzx1.mongodb.net:27017,ac-edsmrsu-shard-00-02.4jdrzx1.mongodb.net:27017/?ssl=true&replicaSet=atlas-7w5ul6-shard-0&authSource=admin&retryWrites=true&w=majority");
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .build();
         mongoClient = MongoClients.create(settings);
         database = mongoClient.getDatabase(DB_NAME);
+        }
+        catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by title: ", e);
+        }
     }
 
     @Override
-    public void disconnect() {
-        this.mongoClient.close();
+    public void disconnect() throws BooksDbException{
+        try{
+        this.mongoClient.close();}
+        catch (MongoException e) {
+            throw new BooksDbException("An exception occurred while searching for books by title: ", e);
+        }
     }
 
     /**

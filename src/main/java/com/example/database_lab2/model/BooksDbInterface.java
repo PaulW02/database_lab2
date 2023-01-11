@@ -24,9 +24,9 @@ public interface BooksDbInterface {
     /**
      * Connect to the database.
      */
-    public void connect();
+    public void connect() throws BooksDbException;
     
-    public void disconnect();
+    public void disconnect() throws BooksDbException;
     
     public List<Book> searchBooksByTitle(String title) throws BooksDbException;
 

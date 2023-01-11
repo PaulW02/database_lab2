@@ -26,10 +26,8 @@ import org.controlsfx.control.Rating;
  * @author anderslm@kth.se
  */
 public class BooksPane extends VBox {
-
     private TableView<Book> booksTable;
     private ObservableList<Book> booksInTable; // the data backing the table view
-
     private ComboBox<SearchMode> searchModeBox;
     private ComboBox<Genre> genreComboBox;
     private ComboBox<Book> booksComboBox;
@@ -50,7 +48,7 @@ public class BooksPane extends VBox {
     private Stage initUpdateBookPopup;
     private Stage initReviewBookPopup;
 
-    public BooksPane(BooksDbImpl booksDb) {
+    public BooksPane(BooksDbImpl booksDb) throws BooksDbException {
         final Controller controller = new Controller(booksDb, this);
         this.init(controller);
     }
@@ -293,7 +291,6 @@ public class BooksPane extends VBox {
         nameVbox.getChildren().addAll(nameLbl, nameField);
         nameVbox.setSpacing(10);
 
-
         Label usernameLbl = new Label("Username:");
         TextField usernameField = new TextField();
         VBox usernameVbox = new VBox();
@@ -443,7 +440,6 @@ public class BooksPane extends VBox {
 
         Button updateBookBtn= new Button("Update book");
 
-
         updateBookBtn.setOnAction(e -> {
             controller.onUpdateBook(booksComboBox.getValue().getIsbn(),newTitleField.getText(),authorField.getText(),genreComboBox.getValue() == null ? null:genreComboBox.getValue().toString());
             initUpdateBookPopup.close();
@@ -549,8 +545,6 @@ public class BooksPane extends VBox {
         ratingVbox.getChildren().addAll(starsLbl, rating);
         ratingVbox.setSpacing(10);
         ratingVbox.setAlignment(Pos.CENTER);
-
-
 
         Button reviewBookBtn= new Button("Submit review");
 
